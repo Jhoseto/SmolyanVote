@@ -1,11 +1,16 @@
-import type { Metadata } from "next";
 import { MonitorMethodologyPage } from "@/features/monitor";
+import { MonitorSeoIntro } from "@/lib/seo/components/MonitorSeoIntro";
+import { buildMonitorTabMetadata, getMonitorTabSeo } from "@/lib/seo/monitorTabSeo";
 
-export const metadata: Metadata = {
-  title: "SmolyanVote — Методология на монитора",
-  alternates: { canonical: "/monitor/methodology" },
-};
+const tab = getMonitorTabSeo("/monitor/methodology")!;
+
+export const metadata = buildMonitorTabMetadata(tab);
 
 export default function Page() {
-  return <MonitorMethodologyPage />;
+  return (
+    <>
+      <MonitorSeoIntro title={tab.title} answerFirst={tab.answerFirst} />
+      <MonitorMethodologyPage />
+    </>
+  );
 }

@@ -1,11 +1,16 @@
-import type { Metadata } from "next";
 import { MonitorSearchPage } from "@/features/monitor";
+import { MonitorSeoIntro } from "@/lib/seo/components/MonitorSeoIntro";
+import { buildMonitorTabMetadata, getMonitorTabSeo } from "@/lib/seo/monitorTabSeo";
 
-export const metadata: Metadata = {
-  title: "SmolyanVote — Търсене в монитора",
-  alternates: { canonical: "/monitor/search" },
-};
+const tab = getMonitorTabSeo("/monitor/search")!;
+
+export const metadata = buildMonitorTabMetadata(tab);
 
 export default function Page() {
-  return <MonitorSearchPage />;
+  return (
+    <>
+      <MonitorSeoIntro title={tab.title} answerFirst={tab.answerFirst} />
+      <MonitorSearchPage />
+    </>
+  );
 }

@@ -180,11 +180,18 @@ const WEBSITE_JSON_LD = {
       url: `${SITE_URL}/images/logoNew.png`,
     },
   },
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE_URL}/publications?q={search_term_string}`,
-    "query-input": "required name=search_term_string",
-  },
+  potentialAction: [
+    {
+      "@type": "SearchAction",
+      target: `${SITE_URL}/publications?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+    {
+      "@type": "SearchAction",
+      target: `${SITE_URL}/monitor/search?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  ],
 };
 
 export default async function RootLayout({

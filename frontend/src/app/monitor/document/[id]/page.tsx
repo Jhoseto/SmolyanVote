@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { resolveApiUrl } from "@/config/env";
 import { brandedOgImageUrl, buildSocialMetadata } from "@/lib/seo/buildSocialMetadata";
+import { JsonLd } from "@/lib/seo/components/JsonLd";
+import { SeoBreadcrumbs } from "@/lib/seo/components/SeoBreadcrumbs";
+import { buildMonitorDocumentJsonLd } from "@/lib/seo/jsonLd/monitorJsonLd";
 import { MonitorDocumentDetailPage } from "@/features/monitor";
 import type { MonitorDocumentDetail } from "@/features/monitor";
 
@@ -38,10 +41,41 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     path,
     image: brandedOgImageUrl(path),
     type: "article",
-    section: data.documentType,
+    section: "Монитор",
   });
 }
 
-export default function Page() {
-  return <MonitorDocumentDetailPage />;
+export default async function Page({ params }: PageProps) {
+  const { id } = await params;
+  const data = await fetchDocument(id);
+
+  return (
+    <>
+      {data ? (
+        <>
+          <JsonLd
+            data={buildMonitorDocumentJsonLd({
+              id: data.id,
+              title: data.title,
+              shortSummary: data.shortSummary,
+              documentType: data.documentType,
+              publishedAt: data.publishedAt,
+            })}
+          />
+          <article className="sr-only" aria-label={data.title}>
+            <SeoBreadcrumbs
+              items={[
+                { name: "Начало", href: "/" },
+                { name: "Монитор", href: "/monitor" },
+                { name: data.title },
+              ]}
+            />
+            <h1>{data.title}</h1>
+            {data.shortSummary ? <p>{data.shortSummary}</p> : null}
+          </article>
+        </>
+      ) : null}
+      <MonitorDocumentDetailPage />
+    </>
+  );
 }

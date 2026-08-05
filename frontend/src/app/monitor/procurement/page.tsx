@@ -1,5 +1,16 @@
 import { MonitorProcurementPage } from "@/features/monitor";
+import { MonitorSeoIntro } from "@/lib/seo/components/MonitorSeoIntro";
+import { buildMonitorTabMetadata, getMonitorTabSeo } from "@/lib/seo/monitorTabSeo";
+
+const tab = getMonitorTabSeo("/monitor/procurement")!;
+
+export const metadata = buildMonitorTabMetadata(tab);
 
 export default function Page() {
-  return <MonitorProcurementPage />;
+  return (
+    <>
+      <MonitorSeoIntro title={tab.title} answerFirst={tab.answerFirst} />
+      <MonitorProcurementPage />
+    </>
+  );
 }

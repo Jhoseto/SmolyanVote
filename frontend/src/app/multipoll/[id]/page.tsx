@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
-import { resolveApiUrl } from "@/config/env";
+import { Suspense } from "react";
+import Link from "next/link";
 import { brandedOgImageUrl, buildSocialMetadata } from "@/lib/seo/buildSocialMetadata";
+import { JsonLd } from "@/lib/seo/components/JsonLd";
+import { EventSeoArticle } from "@/lib/seo/components/EventSeoArticle";
+import { fetchMultipollDetail } from "@/lib/seo/fetchEventDetail";
+import { buildEventJsonLd } from "@/lib/seo/jsonLd/eventJsonLd";
 import { MultiPollDetailClient } from "./MultiPollDetailClient";
 
 interface PageProps {
@@ -10,22 +15,8 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const path = `/multipoll/${id}`;
-  try {
-    const res = await fetch(resolveApiUrl(`/api/v1/events/multipoll/${id}`), {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) throw new Error("not found");
-    const data = await res.json();
-    const desc = [data.description, "Избери опция и гласувай в SmolyanVote"]
-      .filter(Boolean)
-      .join(" — ");
-    return buildSocialMetadata({
-      title: data.title,
-      description: desc,
-      path,
-      image: brandedOgImageUrl(path),
-    });
-  } catch {
+  const data = await fetchMultipollDetail(id);
+  if (!data) {
     return buildSocialMetadata({
       title: "Анкета",
       path,
@@ -33,9 +24,36 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "website",
     });
   }
+  return buildSocialMetadata({
+    title: data.title,
+    description: data.description,
+    path,
+    image: brandedOgImageUrl(path),
+  });
 }
 
 export default async function MultiPollDetailPage({ params }: PageProps) {
   const { id } = await params;
-  return <MultiPollDetailClient id={Number(id)} />;
+  const data = await fetchMultipollDetail(id);
+
+  if (!data) {
+    return (
+      <div className="py-16 text-center">
+        <h1 className="text-xl font-semibold">Анкетата не е намерена</h1>
+        <Link href="/events" className="mt-4 inline-block text-primary hover:underline">
+          ← Към събитията
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <JsonLd data={buildEventJsonLd(data)} />
+      <EventSeoArticle data={data} />
+      <Suspense fallback={null}>
+        <MultiPollDetailClient id={Number(id)} />
+      </Suspense>
+    </>
+  );
 }

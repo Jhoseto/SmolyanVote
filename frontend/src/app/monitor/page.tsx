@@ -1,18 +1,19 @@
 import { Suspense } from "react";
-import type { Metadata } from "next";
 import { MonitorHomePage } from "@/features/monitor";
+import { MonitorSeoIntro } from "@/lib/seo/components/MonitorSeoIntro";
+import { buildMonitorTabMetadata, getMonitorTabSeo } from "@/lib/seo/monitorTabSeo";
 
-export const metadata: Metadata = {
-  title: "SmolyanVote — Граждански монитор",
-  description:
-    "Поръчки, решения и разходи на община Смолян — структурирани, проверими, на прост език.",
-  alternates: { canonical: "/monitor" },
-};
+const tab = getMonitorTabSeo("/monitor")!;
+
+export const metadata = buildMonitorTabMetadata(tab);
 
 export default function MonitorPage() {
   return (
-    <Suspense>
-      <MonitorHomePage />
-    </Suspense>
+    <>
+      <MonitorSeoIntro title={tab.title} answerFirst={tab.answerFirst} />
+      <Suspense>
+        <MonitorHomePage />
+      </Suspense>
+    </>
   );
 }

@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { resolveApiUrl } from "@/config/env";
-import { brandedOgImageUrl, buildSocialMetadata } from "@/lib/seo/buildSocialMetadata";
+import { brandedOgImageUrl, buildSocialMetadata, firstImage } from "@/lib/seo/buildSocialMetadata";
+import { JsonLd } from "@/lib/seo/components/JsonLd";
+import { SeoBreadcrumbs } from "@/lib/seo/components/SeoBreadcrumbs";
+import { buildSignalJsonLd } from "@/lib/seo/jsonLd/signalJsonLd";
 import { Container } from "@/shared/ui";
 import { categoryIcon } from "@/features/signals/data/categories";
 import type { Signal } from "@/features/signals/types";
@@ -66,18 +69,15 @@ export default async function SignalSocialPage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd data={buildSignalJsonLd(data)} />
       <article className="mx-auto max-w-3xl px-4 py-10">
-        <nav className="mb-6 text-sm text-[color:var(--color-text-muted)]">
-          <Link href="/" className="hover:text-primary">
-            Начало
-          </Link>
-          <span className="mx-2">/</span>
-          <Link href="/signals" className="hover:text-primary">
-            Сигнали
-          </Link>
-          <span className="mx-2">/</span>
-          <span className="text-[color:var(--color-text-secondary)]">{data.title}</span>
-        </nav>
+        <SeoBreadcrumbs
+          items={[
+            { name: "Начало", href: "/" },
+            { name: "Сигнали", href: "/signals" },
+            { name: data.title },
+          ]}
+        />
 
         <header className="mb-6">
           <h1 className="font-display text-3xl font-bold tracking-[-0.02em] text-[color:var(--color-text-heading)]">

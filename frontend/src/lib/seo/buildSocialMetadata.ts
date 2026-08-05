@@ -81,3 +81,20 @@ export function firstImage(...candidates: Array<string | null | undefined | stri
   }
   return null;
 }
+
+/** Listing/hub pages — ensures correct OG url (not homepage inheritance). */
+export function buildListingMetadata(input: {
+  title: string;
+  description: string;
+  path: string;
+}): Metadata {
+  return buildSocialMetadata({
+    title: input.title,
+    description: input.description,
+    path: input.path,
+    type: "website",
+  });
+}
+
+/** Utility/create flows — noindex. */
+export const NOINDEX_ROBOTS: Metadata["robots"] = { index: false, follow: false };

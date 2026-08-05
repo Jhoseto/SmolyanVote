@@ -45,6 +45,8 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
     { label: t.footer.nav.publications, href: "/publications" },
     { label: t.nav.signals, href: "/signals" },
     { label: t.nav.podcast, href: "/podcast" },
+    { label: "Монитор", href: "/monitor" },
+    { label: "Теми", href: "/topics" },
     { label: t.footer.nav.about, href: "/about" },
     { label: t.footer.nav.faq, href: "/faq" },
   ];

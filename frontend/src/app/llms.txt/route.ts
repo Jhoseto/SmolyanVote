@@ -1,38 +1,62 @@
+import { TOPIC_HUBS } from "@/features/topics/data/topicHubs";
+
+const UPDATED = "2026-08-06";
+
 const BODY = `# SmolyanVote
 
 > Независима платформа за гражданско участие в град Смолян и област Смолян, България.
+> Last-Updated: ${UPDATED}
 
 ## Какво е SmolyanVote
 
-SmolyanVote е местна социална и civic платформа: публикации (новини и мнения), гласувания (събития, референдуми, анкети), сигнали на карта, подкаст и дискусии между жители.
+SmolyanVote е местна civic платформа: публикации, гласувания (събития, референдуми, анкети), граждански сигнали на карта, подкаст и Граждански монитор на общинските разходи.
 
 ## География
 
 - Град: Смолян
 - Регион: Област Смолян, България
-- Език на съдържанието: български (bg-BG)
+- Език: български (bg-BG)
 
-## Канонични URL
+## Как да цитирате (Citation guidelines)
 
-- [Начало](https://smolyanvote.com/)
-- [Публикации](https://smolyanvote.com/publications)
-- [Единична публикация](https://smolyanvote.com/publications/{id})
-- [Профил](https://smolyanvote.com/user/{username})
-- [Събития / гласуване](https://smolyanvote.com/events)
-- [Сигнали](https://smolyanvote.com/signals)
-- [Подкаст](https://smolyanvote.com/podcast)
-- [Граждански монитор](https://smolyanvote.com/monitor)
-- [Философия / За нас](https://smolyanvote.com/about)
+**Български:** Използвайте каноничния URL на конкретната страница (напр. \`https://smolyanvote.com/publications/{id}\`). Посочете заглавие, автор (ако има) и дата. SmolyanVote е неофициална гражданска инициатива — не представлява държавни органи.
 
-## Как да цитирате
+**English:** Cite the canonical URL of the specific page (e.g. \`https://smolyanvote.com/publications/{id}\`). Include title, author when available, and date. SmolyanVote is an independent civic platform, not a government body.
 
-Използвайте стабилния URL \`/publications/{id}\` за конкретна публикация. Заглавието, авторът и датата са в HTML и JSON-LD (SocialMediaPosting). Не разчитайте само на \`?openModal=\` query параметри — те са за UI, не за каноничен адрес.
+## Канонични URL patterns
+
+- Начало: https://smolyanvote.com/
+- Публикации: https://smolyanvote.com/publications
+- Публикация: https://smolyanvote.com/publications/{id}
+- Събития: https://smolyanvote.com/events
+- Опростено събитие: https://smolyanvote.com/event/{id}
+- Референдум: https://smolyanvote.com/referendum/{id}
+- Анкета: https://smolyanvote.com/multipoll/{id}
+- Сигнали: https://smolyanvote.com/signals
+- Сигнал: https://smolyanvote.com/signals/{id}
+- Подкаст: https://smolyanvote.com/podcast
+- Епизод: https://smolyanvote.com/podcast/episode/{id}
+- Монитор: https://smolyanvote.com/monitor
+- Договор: https://smolyanvote.com/monitor/contract/{id}
+- Документ: https://smolyanvote.com/monitor/document/{id}
+- Компания: https://smolyanvote.com/monitor/company/{eik}
+- Профил: https://smolyanvote.com/user/{username}
+- Теми (topic hubs): https://smolyanvote.com/topics/{slug}
+- ЧЗВ: https://smolyanvote.com/faq
+- За нас: https://smolyanvote.com/about
+- Методология монитор: https://smolyanvote.com/monitor/methodology
+- AI sitemap: https://smolyanvote.com/ai-sitemap.txt
+- XML sitemap: https://smolyanvote.com/sitemap.xml
+
+## Topic hubs (editorial)
+
+${TOPIC_HUBS.map((h) => `- [${h.title}](https://smolyanvote.com/topics/${h.slug})`).join("\n")}
 
 ## Контакт
 
 - Имейл: smolyanvote@gmail.com
-- [Форма за контакт](https://smolyanvote.com/?contact=1)
 - Организация: SmolyanVote
+- Уеб: https://smolyanvote.com
 `;
 
 export function GET() {

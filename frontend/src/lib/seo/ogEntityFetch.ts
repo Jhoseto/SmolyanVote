@@ -195,3 +195,30 @@ export async function fetchMonitorDocumentOg(id: string): Promise<OgShareCardInp
     meta: data.documentType ? `${data.documentType} · Смолян` : "Граждански монитор · Смолян",
   };
 }
+
+export async function fetchSignalOg(id: string): Promise<OgShareCardInput> {
+  const data = await fetchJson<{
+    title?: string;
+    description?: string;
+    categoryLabel?: string | null;
+    authorUsername?: string | null;
+    imageUrl?: string | null;
+  }>(`/api/v1/signals/${id}`);
+
+  if (!data) {
+    return { kind: "publication", title: "Граждански сигнал — Смолян", meta: "SmolyanVote" };
+  }
+
+  const title = requireTitle(data.title, "Граждански сигнал — Смолян");
+  return {
+    kind: "publication",
+    title,
+    subtitle: excerpt(data.description, title),
+    meta: data.categoryLabel
+      ? `${data.categoryLabel} · Смолян`
+      : data.authorUsername
+        ? `от ${data.authorUsername}`
+        : "SmolyanVote · Смолян",
+    coverUrl: resolveOgCoverUrl(data.imageUrl),
+  };
+}

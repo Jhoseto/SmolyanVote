@@ -1,22 +1,15 @@
 import { Suspense } from "react";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { resolveApiUrl } from "@/config/env";
 import { PublicationsPageClient } from "./PublicationsPageClient";
+import { buildListingMetadata } from "@/lib/seo/buildSocialMetadata";
 
-export const metadata: Metadata = {
-  title: "Публикации — местната социална лента на Смолян | SmolyanVote",
+export const metadata = buildListingMetadata({
+  title: "Публикации — местната социална лента на Смолян",
   description:
     "Новини, инициативи и мнения от жителите на Смолян. Граждански дискусии, харесвания и коментари в местната социална мрежа SmolyanVote.",
-  alternates: { canonical: "https://smolyanvote.com/publications" },
-  openGraph: {
-    title: "Публикации | SmolyanVote",
-    description: "Местната социална лента на Смолян — новини, инициативи и мнения.",
-    url: "https://smolyanvote.com/publications",
-    locale: "bg_BG",
-    siteName: "SmolyanVote",
-  },
-};
+  path: "/publications",
+});
 
 interface Teaser {
   id: number;
