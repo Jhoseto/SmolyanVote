@@ -34,5 +34,7 @@ let localCss = css.replace(/url\((https:[^)]+)\)/g, (_m, url) => {
   return `url(/fonts/mobile/${name})`;
 });
 localCss = localCss.replace(/@font-face\s*\{/g, "@font-face{font-display:swap;");
+fs.writeFileSync(path.join(OUT_DIR, "fonts.full.css"), localCss);
 fs.writeFileSync(path.join(OUT_DIR, "fonts.css"), localCss);
 console.log("css bytes", localCss.length, "files", seen.size);
+console.log("Run scripts/build-mobile-fonts-critical.mjs next to slim + emit fonts-critical.css");

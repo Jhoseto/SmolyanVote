@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { HeroImage, HeroImagePreloads } from "@/features/shell";
+import { HeroImage, HeroImagePreloads } from "@/features/shell/components/HeroImage";
 
 const Hero = dynamic(() =>
   import("@/features/shell/components/Hero").then((m) => ({

@@ -7,9 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryProvider } from "./QueryProvider";
 import { AuthProvider } from "./AuthProvider";
 import { useAuth } from "@/shared/lib/authContext";
-import { GoogleTranslateProvider } from "@/lib/i18n-web-translate";
 import { Toaster, ConfirmDialogHost, BackToTop, HeartbeatBeacon, ModerationWarningHost, PermanentBanModalHost } from "@/shared/ui";
-import { CookieConsentRoot } from "@/features/cookie-consent";
 import { ContactModalQuerySync } from "@/features/contacts";
 import { useMessengerUiStore } from "@/features/messenger/store/messengerUiStore";
 import { useIsDesktopMessenger } from "@/features/messenger/lib/isDesktopMessenger";
@@ -45,6 +43,16 @@ const LoginGateModalImpl = dynamic(
 
 const ContactModalImpl = dynamic(
   () => import("@/features/contacts").then((m) => m.ContactModal),
+  { ssr: false },
+);
+
+const GoogleTranslateProvider = dynamic(
+  () => import("@/lib/i18n-web-translate").then((m) => m.GoogleTranslateProvider),
+  { ssr: false },
+);
+
+const CookieConsentRoot = dynamic(
+  () => import("@/features/cookie-consent").then((m) => m.CookieConsentRoot),
   { ssr: false },
 );
 
@@ -217,6 +225,40 @@ function DeferredHeavyShell() {
   );
 }
 
+/**
+ * Cookie banner + Google Translate chrome — not needed for LCP. Idle-mount
+ * after first paint so their JS stays off the critical path on mobile Slow 4G.
+ * Banner still appears within ~1–2s (well within consent UX norms).
+ */
+function DeferredSecondaryShell() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 767px)").matches;
+    const idleMs = mobile ? 2000 : 800;
+    const schedule =
+      typeof requestIdleCallback === "function"
+        ? (cb: () => void) => requestIdleCallback(cb, { timeout: idleMs })
+        : (cb: () => void) => window.setTimeout(cb, mobile ? 1200 : 400);
+    const id = schedule(() => setReady(true));
+    return () => {
+      if (typeof cancelIdleCallback === "function" && typeof id === "number") {
+        cancelIdleCallback(id);
+      } else {
+        window.clearTimeout(id as number);
+      }
+    };
+  }, []);
+
+  if (!ready) return null;
+  return (
+    <>
+      <GoogleTranslateProvider />
+      <CookieConsentRoot />
+    </>
+  );
+}
+
 /** Single wiring point for all client-side providers (keeps layout.tsx thin). */
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -224,7 +266,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <QueryProvider>
         <AuthProvider>
           {children}
-          <GoogleTranslateProvider />
           <Toaster />
           <ConfirmDialogHost />
           <ModerationWarningHost />
@@ -234,7 +275,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             <ContactModalQuerySync />
           </Suspense>
           <ContactModalGate />
-          <CookieConsentRoot />
+          <DeferredSecondaryShell />
           <BackToTop />
           <HeartbeatBeacon />
           <DownloadModalGate />

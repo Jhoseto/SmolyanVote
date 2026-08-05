@@ -10,7 +10,8 @@ import { useLoginGateStore } from "@/shared/lib/loginGateStore";
 import { getShellMessages, type Language } from "@/lib/i18n/locales";
 import { FooterContactCard } from "@/features/contacts";
 import { cn } from "@/shared/lib/cn";
-import "./footer.css";
+/* footer.css is loaded non-blocking from layout.tsx (below-fold; keeps it
+   out of the mobile LCP critical CSS chain). */
 
 interface FooterProps {
   cookiePreferencesSlot?: ReactNode;

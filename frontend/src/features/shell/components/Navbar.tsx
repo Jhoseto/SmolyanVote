@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { LOGO_NAV } from "@/shared/lib/brandAssets";
 import { usePathname } from "next/navigation";
@@ -71,13 +70,17 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
             onClick={handleHomeNavClick}
             className="flex shrink-0 items-center gap-2.5"
           >
-            <Image
+            {/* Static 40×40 PNG — plain <img> so next/image never emits an
+                unconditional high-priority preload that competes with the hero
+                LCP image on mobile Slow 4G. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={LOGO_NAV}
               alt="SmolyanVote"
               width={40}
               height={40}
+              decoding="async"
               className="h-10 w-10 object-contain"
-              priority
             />
             <span className="bg-gradient-to-r from-[#19861c] to-[#48a24c] bg-clip-text font-sans text-[1.25rem] font-bold tracking-tight text-transparent">
               SMOLYANVOTE
