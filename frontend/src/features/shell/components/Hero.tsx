@@ -43,7 +43,7 @@ export function Hero() {
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1200px] flex-col px-4 md:px-8 lg:ml-[8%] lg:mr-auto lg:max-w-[55%]">
         <h1
-          className="hero-animate-title text-gradient-brand text-[clamp(2.6rem,6.5vw,4.5rem)] font-medium leading-none tracking-[-0.02em]"
+          className="sv-hero-title hero-animate-title text-gradient-brand text-[clamp(2.6rem,6.5vw,4.5rem)] font-medium leading-none tracking-[-0.02em]"
           style={{
             filter: "drop-shadow(0 0 18px rgba(76,175,80,0.35))",
             position: "relative",

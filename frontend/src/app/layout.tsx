@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import "./globals.css";
 import { AppProviders } from "@/providers/AppProviders";
 import { Footer } from "@/features/shell";
@@ -18,6 +20,14 @@ import {
   MOBILE_FONTS_CSS,
 } from "@/shared/lib/fontUrls";
 import { getShellMessages, resolveLanguageFromGoogtransCookie } from "@/lib/i18n/locales";
+
+/** Manrope cyrillic @font-face — one woff2 (~15 KB), hero title on mobile. */
+const MOBILE_FONT_CRITICAL_CSS = readFileSync(
+  join(process.cwd(), "public/fonts/mobile/fonts-critical.css"),
+  "utf8",
+);
+
+const INLINE_CRITICAL_CSS = `${HERO_CRITICAL_CSS}\n${MOBILE_FONT_CRITICAL_CSS}`;
 
 const SITE_URL = "https://smolyanvote.com";
 const SITE_NAME = "SmolyanVote";
@@ -197,11 +207,11 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD) }}
         />
         {/*
-          Inline hero layout only — NO @font-face here: inlined Manrope rules
-          pulled two woff2 files (~40 KB) into the critical path on PSI (327 ms).
-          LCP is the hero image; title can swap from system-ui after deferred fonts.
+          Inline hero layout + Manrope cyrillic faces. Deferred full mobile fonts
+          (Inter, IBM, latin Manrope) load after LCP. Latin subset removed from
+          critical — hero title is Bulgarian (cyrillic only).
         */}
-        <style dangerouslySetInnerHTML={{ __html: HERO_CRITICAL_CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: INLINE_CRITICAL_CSS }} />
         <link
           rel="stylesheet"
           href={DESKTOP_FONTS_CSS}
@@ -216,10 +226,10 @@ export default async function RootLayout({
           crossOrigin="anonymous"
           media="(min-width: 768px)"
         />
-        {/* All mobile fonts after LCP — hero image must win Slow-4G bandwidth. */}
+        {/* Inter / Source Sans / IBM + Manrope latin — after first paint on mobile. */}
         <DeferredStylesheet
           href={MOBILE_FONTS_CSS}
-          idleTimeoutMs={2500}
+          idleTimeoutMs={800}
           matchMedia="(max-width: 767px)"
         />
         <DeferredStylesheet href={FOOTER_CSS} idleTimeoutMs={600} />

@@ -49,10 +49,10 @@ function isLatinMain(face) {
   return u.includes("U+0000-00FF");
 }
 
-/** Critical path: Manrope only, main cyrillic + latin — hero title on mobile. */
+/** Critical path: Manrope cyrillic only — hero title is BG text (one woff2 file). */
 const critical = faces.filter((f) => {
   if (family(f) !== "Manrope") return false;
-  return isCyrillicMain(f) || isLatinMain(f);
+  return isCyrillicMain(f);
 });
 
 /** Full mobile sheet without unused scripts (greek / vietnamese). */
