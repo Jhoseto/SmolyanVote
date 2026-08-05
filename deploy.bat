@@ -194,10 +194,12 @@ if errorlevel 1 exit /b 1
 
 echo.
 echo Deploy complete:
-echo   HTTP (IP):  http://%DO_HOST%/
-echo   HTTPS:      https://161-35-69-206.sslip.io/
-echo   Monitor:    https://161-35-69-206.sslip.io/monitor
-echo   Note: https://%DO_HOST% fails in Chrome ^(no SSL for raw IP^) — use sslip.io or http:// IP
+echo   Production: https://smolyanvote.com/
+echo   Monitor:    https://smolyanvote.com/monitor
+echo   Admin:      https://smolyanvote.com/admin
+echo   Fallback:   https://161-35-69-206.sslip.io/ ^(until DNS/LE ready^)
+echo   HTTP IP:    http://%DO_HOST%/ ^(no HTTPS on raw IP^)
+echo   Cloudflare: DNS-only first, then Full ^(strict^) after site loads on HTTPS
 echo   After first deploy: Admin -^> Monitor -^> Ingestion -^> run SIGMA import (~5 min)
 echo.
 echo Tips for faster deploys:

@@ -1,13 +1,14 @@
-# Production Caddy.
-# Use https://161-35-69-206.sslip.io until smolyanvote.com DNS exists.
-# Raw IP HTTPS fails on Windows Chrome (no SNI) — use sslip.io or http://161.35.69.206
+# Production Caddy — smolyanvote.com (Cloudflare A → 161.35.69.206)
+# Caddy auto-issues Let's Encrypt certs for smolyanvote.com + www.
+# Cloudflare: keep DNS-only (grey cloud) until https://smolyanvote.com works, then Proxied + Full (strict).
 
 {
-	auto_https disable_redirects
+	# Optional: LE expiry notices (uncomment and set a real inbox)
+	# email smolyanvote@gmail.com
 }
 
 (app) {
-	encode gzip
+	encode gzip zstd
 
 	handle /api/* {
 		reverse_proxy backend:2662
@@ -30,20 +31,21 @@
 	}
 }
 
-# HTTP by IP or hostname (no TLS redirect).
-:80 {
+# Primary site — HTTPS + HTTP→HTTPS redirect (automatic)
+smolyanvote.com {
 	import app
 }
 
-# HTTPS with real cert (Let's Encrypt) — works in Chrome on Windows.
+www.smolyanvote.com {
+	redir https://smolyanvote.com{uri} permanent
+}
+
+# Emergency / pre-cutover fallback (optional; safe to remove later)
 161-35-69-206.sslip.io {
 	import app
 }
 
-# --- After smolyanvote.com DNS A → this server, uncomment: ---
-# smolyanvote.com {
-# 	import app
-# }
-# www.smolyanvote.com {
-# 	redir https://smolyanvote.com{uri} permanent
-# }
+# Raw IP — HTTP only (browsers cannot get TLS cert for bare IP)
+http://161.35.69.206 {
+	import app
+}

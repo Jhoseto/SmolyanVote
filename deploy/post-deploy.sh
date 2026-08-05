@@ -127,12 +127,20 @@ else
 fi
 
 echo ""
+echo "=== Production URLs ==="
+echo "  Site:    https://smolyanvote.com"
+echo "  Monitor: https://smolyanvote.com/monitor"
+echo "  Admin:   https://smolyanvote.com/admin"
+echo "  Fallback (if DNS propagating): https://161-35-69-206.sslip.io"
+echo ""
 echo "=== Граждански монитор — първи deploy ==="
-echo "  1. Отворете https://161-35-69-206.sslip.io/monitor (или http://YOUR_IP/monitor)"
-echo "     Chrome: https://RAW_IP не работи — използвайте sslip.io или http://"
+echo "  1. Отворете https://smolyanvote.com/monitor"
 echo "  2. Влезте като admin → /admin?tab=monitor → Ingestion"
 echo "  3. Пуснете „Пълен pipeline“ или поне SIGMA import (отнема ~5 мин)"
 echo "  4. По график: SIGMA 04:00, EOP 05:00, scrape 06:00, AI 06:30 (Europe/Sofia)"
+echo ""
+echo "=== Cloudflare (if used) ==="
+echo "  DNS-only until LE cert works, then SSL/TLS → Full (strict), optional Proxied"
 echo ""
 echo "=== Deploy finished ==="
 docker compose -f docker-compose.prod.yml ps
