@@ -6,9 +6,11 @@ const API_ORIGIN =
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ??
   "http://localhost:2662";
 
+/** Turbopack: empty stub. Webpack (production deploy): alias to `false`. */
+const POLYFILL_STUB = "./src/lib/modern-polyfill.js";
 const POLYFILL_ALIASES = {
-  "../build/polyfills/polyfill-module": "./src/lib/modern-polyfill.js",
-  "next/dist/build/polyfills/polyfill-module": "./src/lib/modern-polyfill.js",
+  "../build/polyfills/polyfill-module": POLYFILL_STUB,
+  "next/dist/build/polyfills/polyfill-module": POLYFILL_STUB,
 } as const;
 
 const SECURITY_HEADERS = [
@@ -30,7 +32,8 @@ const nextConfig: NextConfig = {
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      ...POLYFILL_ALIASES,
+      "../build/polyfills/polyfill-module": false,
+      "next/dist/build/polyfills/polyfill-module": false,
     };
     return config;
   },
