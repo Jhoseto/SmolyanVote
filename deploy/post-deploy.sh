@@ -119,6 +119,18 @@ else
   echo "  WARN  GEMINI_API_KEY missing — monitor AI summaries will use fallbacks"
 fi
 
+if [[ -f .env ]]; then
+  fe="$(grep -E '^SMOLYANVOTE_FRONTEND_URL=' .env 2>/dev/null | cut -d= -f2- | tr -d '\r' || true)"
+  if [[ -z "${fe}" ]]; then
+    echo "  WARN  SMOLYANVOTE_FRONTEND_URL not set — OAuth/email links default to https://smolyanvote.com"
+  elif [[ "${fe}" == *161.35.69.206* ]] || [[ "${fe}" == http://* ]]; then
+    echo "  WARN  SMOLYANVOTE_FRONTEND_URL=${fe}"
+    echo "        Set SMOLYANVOTE_FRONTEND_URL=https://smolyanvote.com in .env (OAuth redirects, emails)"
+  else
+    echo "  OK  SMOLYANVOTE_FRONTEND_URL=${fe}"
+  fi
+fi
+
 if [[ -f .env ]] && grep -q '^MONITOR_SCRAPER_URL=' .env 2>/dev/null; then
   url="$(grep '^MONITOR_SCRAPER_URL=' .env | cut -d= -f2- | tr -d '\r')"
   echo "  OK  MONITOR_SCRAPER_URL=${url}"

@@ -41,7 +41,8 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
         }
 
         String errorMessage = exception.getMessage();
-        String redirectUrl = frontendProperties.origin() + "/oauth-callback?error=" + encodeErrorMessage(errorMessage);
+        String redirectUrl = frontendProperties.originForOAuth(request)
+                + "/oauth-callback?error=" + encodeErrorMessage(errorMessage);
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 

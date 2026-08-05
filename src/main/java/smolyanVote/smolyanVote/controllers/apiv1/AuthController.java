@@ -182,7 +182,8 @@ public class AuthController {
             HttpServletResponse response) throws IOException {
         String normalized = provider == null ? "" : provider.trim().toLowerCase();
         if (!OAUTH_PROVIDERS.contains(normalized)) {
-            response.sendRedirect(frontendProperties.origin() + "/oauth-callback?error=unsupported_provider");
+            response.sendRedirect(frontendProperties.originForOAuth(request)
+                    + "/oauth-callback?error=unsupported_provider");
             return;
         }
 
