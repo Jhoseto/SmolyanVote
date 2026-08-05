@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { HeroImage, HeroImagePreloads } from "@/features/shell/components/HeroImage";
-import { Hero } from "@/features/shell/components/Hero";
+import { HeroStatic } from "@/features/shell/components/HeroStatic";
+import { HeroEffectsGate } from "@/features/shell/components/HeroEffectsGate";
 
 const TitleSection = dynamic(() =>
   import("@/features/shell/components/TitleSection").then((m) => ({
@@ -57,7 +58,8 @@ export default function HomePage() {
       <HeroImagePreloads />
       <section className="sv-hero-shell relative flex min-h-[85vh] items-center overflow-hidden">
         <HeroImage />
-        <Hero />
+        <HeroEffectsGate />
+        <HeroStatic />
       </section>
       <TitleSection />
       <StatsVideoSection />

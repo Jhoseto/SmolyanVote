@@ -8,6 +8,9 @@ import { fetchTopicSitemapEntries } from "@/lib/seo/sitemap/fetchTopics";
 
 const BASE_URL = "https://smolyanvote.com";
 
+/** Avoid hammering the API on every crawler hit — keeps TTFB stable for pages. */
+export const revalidate = 3600;
+
 /** Sitemap for all indexable Next.js routes + dynamic entities (SEO/GEO/AEO). */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();

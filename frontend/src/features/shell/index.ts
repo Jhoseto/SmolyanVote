@@ -2,6 +2,8 @@ export { Navbar } from "./components/Navbar";
 export { VoteNavMenu } from "./components/VoteNavMenu";
 export { MonitorNavMenu } from "./components/MonitorNavMenu";
 export { Footer } from "./components/Footer";
+export { HeroStatic } from "./components/HeroStatic";
+export { HeroEffects } from "./components/HeroEffects";
 export { Hero } from "./components/Hero";
 export { HeroImage, HeroImagePreloads } from "./components/HeroImage";
 export { TitleSection } from "./components/TitleSection";
