@@ -28,9 +28,10 @@ const DownloadModal = dynamic(
 /**
  * Loads the DownloadModal bundle on first request instead of on every page —
  * removes ~40 KB of unused JS from first load for the ~99% of visitors who
- * never open it. Listens for the same "sv:open-download-modal" event (also
- * caught by the modal itself once mounted) plus the store flag directly,
- * since the homepage promo CTA can fire before the modal chunk is loaded.
+ * never open it. This is the single place that owns "opening" the modal:
+ * it reacts to the store flag (set directly by the FAB / share dialog) and
+ * to the "sv:open-download-modal" event (dispatched by the homepage promo
+ * card, which can fire before the modal chunk has even loaded).
  */
 function DownloadModalGate() {
   const open = useMessengerUiStore((s) => s.downloadModalOpen);

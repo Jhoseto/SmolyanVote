@@ -54,7 +54,18 @@ function IconSparkle() {
   );
 }
 
-/** SVMessenger promo — mobile FAB destination and home-page CTA target. */
+/**
+ * SVMessenger download promo. Rendered by `DownloadModalGate` in
+ * `AppProviders.tsx`, which owns opening the modal (both the direct store
+ * flag used by the FAB/share-dialog, and the "sv:open-download-modal" event
+ * dispatched by the homepage promo card) — this component only reads state
+ * and handles closing, so opening logic lives in exactly one place.
+ *
+ * Layout note: the card is a single scrollable flex block (image + copy +
+ * actions all in normal document flow). No flex-1/grid "flexible middle row"
+ * tricks — those can collapse to zero height on short viewports and hide the
+ * copy entirely. Simple flow means the actions button can never disappear.
+ */
 export function DownloadModal() {
   const open = useMessengerUiStore((s) => s.downloadModalOpen);
   const setOpen = useMessengerUiStore((s) => s.setDownloadModalOpen);
@@ -62,14 +73,6 @@ export function DownloadModal() {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    function onOpenDownload() {
-      setOpen(true);
-    }
-    window.addEventListener("sv:open-download-modal", onOpenDownload);
-    return () => window.removeEventListener("sv:open-download-modal", onOpenDownload);
-  }, [setOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -111,101 +114,109 @@ export function DownloadModal() {
       />
 
       <div
-        className="relative z-[1] grid w-full max-w-[368px] overflow-hidden rounded-[26px] bg-white ring-1 ring-black/[0.04] md:max-w-[740px] md:grid-cols-[280px_1fr]"
-        style={{
-          maxHeight: "min(80dvh, 580px)",
-          gridTemplateRows: "auto minmax(0,1fr) auto",
-          boxShadow: "var(--shadow-promo), 0 30px 80px -20px rgba(2, 44, 34, 0.55)",
-        }}
+        className="relative z-[1] flex w-full max-w-[380px] flex-col overflow-y-auto overflow-x-hidden rounded-[28px] bg-white shadow-[var(--shadow-promo),0_30px_80px_-20px_rgba(2,44,34,0.55)] ring-1 ring-black/[0.04] md:max-w-[760px] md:flex-row"
+        style={{ maxHeight: "min(92dvh, 620px)" }}
       >
         <button
           ref={closeRef}
           type="button"
           aria-label="Затвори"
           onClick={() => setOpen(false)}
-          className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white ring-1 ring-white/20 backdrop-blur-sm transition hover:bg-black/50 md:right-4 md:top-4 md:h-9 md:w-9"
+          className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[color:var(--color-text-secondary)] shadow-[0_2px_10px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.06] backdrop-blur-sm transition hover:bg-white hover:text-[color:var(--color-text-heading)] md:right-4 md:top-4 md:h-9 md:w-9"
         >
           <IconClose />
         </button>
 
-        {/* Visual — compact banner on phones (card never fills the screen), full column on desktop */}
-        <div className="relative overflow-hidden bg-[#022c22] md:row-span-3 md:h-full">
+        {/* Visual — full phone artwork always visible on a premium brand backdrop */}
+        <div
+          className="relative flex h-[188px] w-full shrink-0 items-center justify-center overflow-hidden md:h-auto md:w-[288px]"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 50% 8%, #17503c 0%, #0a3328 42%, #051f18 78%, #03150f 100%)",
+          }}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[85%] w-[85%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70 blur-[48px]"
+            style={{ background: "radial-gradient(circle, rgba(216,181,94,0.38), transparent 68%)" }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.06]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(115deg, #fff 0px, #fff 1px, transparent 1px, transparent 3px)",
+            }}
+          />
           <img
             src={PROMO_IMAGE}
             alt="SVMessenger приложение"
             width={453}
             height={1024}
             decoding="async"
-            className="h-[168px] w-full object-cover object-[50%_28%] md:h-full md:object-[50%_38%]"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white via-white/40 to-transparent md:hidden"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-r from-transparent to-white/90 md:block"
+            className="relative z-[1] h-[164px] w-auto object-contain drop-shadow-[0_18px_36px_rgba(0,0,0,0.5)] md:h-[300px] md:max-h-[80%]"
           />
         </div>
 
-        {/* Copy */}
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-5 pb-1 pt-3 md:px-8 md:pb-2 md:pt-7">
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.14em] text-primary-700">
-            <IconSparkle />
-            SV Messenger
-          </span>
-          <h2
-            id="sv-download-title"
-            className="mt-2 font-display text-[1.3rem] font-bold leading-[1.15] tracking-[-0.02em] text-[color:var(--color-text-heading)] md:text-[1.75rem]"
-          >
-            Свободата да общуваш
-          </h2>
-          <p className="mt-1.5 text-[0.83rem] leading-relaxed text-[color:var(--color-text-secondary)] md:mt-3 md:text-[0.93rem]">
-            Чат в реално време от телефона. Остани свързан със съгражданите си, където и да си.
-          </p>
-
-          <ul className="mt-3 space-y-1.5 md:mt-5 md:space-y-2.5">
-            {FEATURES.map((feature) => (
-              <li
-                key={feature}
-                className="flex items-center gap-2.5 text-[0.8rem] leading-snug text-[color:var(--color-text-secondary)] md:text-[0.9rem]"
-              >
-                <span
-                  className="flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full text-white"
-                  style={{ backgroundImage: "var(--gradient-primary)" }}
-                >
-                  <IconCheck />
-                </span>
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-3 flex items-center gap-1.5 rounded-[10px] bg-primary-50 px-2.5 py-1.5 text-[0.68rem] leading-snug text-primary-800 md:mt-5 md:text-[0.74rem]">
-            <span className="shrink-0 text-primary-600">
-              <IconLock />
+        {/* Copy + actions — one natural flow, never hidden or clipped */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="px-5 pb-4 pt-4 md:px-8 md:pb-2 md:pt-8">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.14em] text-primary-700">
+              <IconSparkle />
+              SV Messenger
             </span>
-            Криптиране от край до край — ECDH P-256 + AES-GCM
-          </p>
-        </div>
+            <h2
+              id="sv-download-title"
+              className="mt-2.5 font-display text-[1.32rem] font-bold leading-[1.15] tracking-[-0.02em] text-[color:var(--color-text-heading)] md:text-[1.8rem]"
+            >
+              Свободата да общуваш
+            </h2>
+            <p className="mt-1.5 text-[0.83rem] leading-relaxed text-[color:var(--color-text-secondary)] md:mt-3 md:text-[0.93rem]">
+              Чат в реално време от телефона. Остани свързан със съгражданите си, където и да си.
+            </p>
 
-        {/* Actions — always visible, never scroll away */}
-        <div className="flex flex-col gap-2 border-t border-black/[0.06] bg-white px-5 py-3.5 md:flex-row md:justify-end md:gap-3 md:px-8 md:py-5">
-          <a
-            href={APK_URL}
-            download
-            className="btn-brand inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-6 text-[0.9rem] font-semibold shadow-[var(--shadow-md)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] md:order-2 md:w-auto"
-          >
-            <IconDownload />
-            Изтегли APK
-          </a>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-primary/30 bg-white text-[0.9rem] font-semibold text-primary transition hover:border-primary hover:bg-primary-50 md:order-1 md:w-auto md:px-6"
-          >
-            Затвори
-          </button>
+            <ul className="mt-3.5 space-y-1.5 md:mt-5 md:space-y-2.5">
+              {FEATURES.map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-center gap-2.5 text-[0.8rem] leading-snug text-[color:var(--color-text-secondary)] md:text-[0.9rem]"
+                >
+                  <span
+                    className="flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full text-white"
+                    style={{ backgroundImage: "var(--gradient-primary)" }}
+                  >
+                    <IconCheck />
+                  </span>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-3.5 flex items-center gap-1.5 rounded-[10px] bg-primary-50 px-2.5 py-1.5 text-[0.68rem] leading-snug text-primary-800 md:mt-5 md:text-[0.74rem]">
+              <span className="shrink-0 text-primary-600">
+                <IconLock />
+              </span>
+              Криптиране от край до край — ECDH P-256 + AES-GCM
+            </p>
+          </div>
+
+          <div className="mt-auto flex flex-col gap-2 border-t border-black/[0.06] px-5 py-3.5 md:flex-row md:justify-end md:gap-3 md:px-8 md:py-5">
+            <a
+              href={APK_URL}
+              download
+              className="btn-brand inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-6 text-[0.9rem] font-semibold shadow-[var(--shadow-md)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] md:order-2 md:w-auto"
+            >
+              <IconDownload />
+              Изтегли APK
+            </a>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="inline-flex h-11 w-full items-center justify-center rounded-full border border-primary/30 bg-white text-[0.9rem] font-semibold text-primary transition hover:border-primary hover:bg-primary-50 md:order-1 md:w-auto md:px-6"
+            >
+              Затвори
+            </button>
+          </div>
         </div>
       </div>
     </div>,
