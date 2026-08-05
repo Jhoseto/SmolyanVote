@@ -44,8 +44,14 @@ services:
       # never includes sharp (optional native dep, wrong platform anyway). sharp-runtime
       # is provisioned once on the Linux host by post-deploy.sh and persists across
       # deploys since it lives outside artifacts/frontend (wiped every deploy).
+      # sharp's own dependencies (semver, detect-libc, @emnapi) must be mounted too —
+      # without them `require("sharp")` throws and Next.js silently falls back to
+      # serving unoptimized originals (wrong format/size, no error visible to users).
       - ./sharp-runtime/node_modules/sharp:/app/node_modules/sharp:ro
       - ./sharp-runtime/node_modules/@img:/app/node_modules/@img:ro
+      - ./sharp-runtime/node_modules/semver:/app/node_modules/semver:ro
+      - ./sharp-runtime/node_modules/detect-libc:/app/node_modules/detect-libc:ro
+      - ./sharp-runtime/node_modules/@emnapi:/app/node_modules/@emnapi:ro
     command: ["node", "server.js"]
     environment:
       PORT: "3000"

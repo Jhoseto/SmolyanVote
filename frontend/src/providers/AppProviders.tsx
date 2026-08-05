@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryProvider } from "./QueryProvider";
 import { AuthProvider } from "./AuthProvider";
@@ -10,10 +10,10 @@ import { useAuth } from "@/shared/lib/authContext";
 import { GoogleTranslateProvider } from "@/lib/i18n-web-translate";
 import { Toaster, ConfirmDialogHost, BackToTop, HeartbeatBeacon, ModerationWarningHost, PermanentBanModalHost } from "@/shared/ui";
 import { CookieConsentRoot } from "@/features/cookie-consent";
-import { ContactModal } from "@/features/contacts";
-import { LoginGateModal } from "@/features/auth";
-import { PodcastMiniPlayer } from "@/features/podcast";
+import { ContactModalQuerySync } from "@/features/contacts";
 import { useMessengerUiStore } from "@/features/messenger/store/messengerUiStore";
+import { useLoginGateStore } from "@/shared/lib/loginGateStore";
+import { useContactModalStore } from "@/shared/lib/contactModalStore";
 
 const MessengerRoot = dynamic(
   () => import("@/features/messenger/components/MessengerRoot").then((m) => m.MessengerRoot),
@@ -24,6 +24,57 @@ const DownloadModal = dynamic(
   () => import("@/features/messenger/components/DownloadModal").then((m) => m.DownloadModal),
   { ssr: false },
 );
+
+const PodcastMiniPlayer = dynamic(
+  () => import("@/features/podcast").then((m) => m.PodcastMiniPlayer),
+  { ssr: false },
+);
+
+const LoginGateModalImpl = dynamic(
+  () => import("@/features/auth").then((m) => m.LoginGateModal),
+  { ssr: false },
+);
+
+const ContactModalImpl = dynamic(
+  () => import("@/features/contacts").then((m) => m.ContactModal),
+  { ssr: false },
+);
+
+/**
+ * Auth modal (login/register/forgot) is opened imperatively from dozens of
+ * gated actions across the app (`useRequireAuth`, navbar CTAs, etc.) via
+ * `useLoginGateStore`. It drags in framer-motion + three validated forms —
+ * gating it here keeps that ~90 KB out of first load for the vast majority
+ * of visits that never need to log in.
+ */
+function LoginGateModalGate() {
+  const isOpen = useLoginGateStore((s) => s.isOpen);
+  const [everOpened, setEverOpened] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setEverOpened(true);
+  }, [isOpen]);
+
+  if (!everOpened) return null;
+  return <LoginGateModalImpl />;
+}
+
+/**
+ * Contact form modal, gated the same way. `ContactModalQuerySync` (tiny,
+ * always mounted below) still opens it instantly via the `?contact=1`
+ * deep-link even before this chunk has loaded.
+ */
+function ContactModalGate() {
+  const isOpen = useContactModalStore((s) => s.isOpen);
+  const [everOpened, setEverOpened] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setEverOpened(true);
+  }, [isOpen]);
+
+  if (!everOpened) return null;
+  return <ContactModalImpl />;
+}
 
 /**
  * Loads the DownloadModal bundle on first request instead of on every page —
@@ -111,8 +162,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <ConfirmDialogHost />
           <ModerationWarningHost />
           <PermanentBanModalHost />
-          <LoginGateModal />
-          <ContactModal />
+          <LoginGateModalGate />
+          <Suspense fallback={null}>
+            <ContactModalQuerySync />
+          </Suspense>
+          <ContactModalGate />
           <CookieConsentRoot />
           <BackToTop />
           <HeartbeatBeacon />
