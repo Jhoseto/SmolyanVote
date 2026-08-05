@@ -31,6 +31,11 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# next/image's standalone file-tracer drops sharp's native binaries (optional
+# peer dep, loaded via dlopen) — copy them explicitly or images silently
+# serve unoptimized originals in production. See nextjs.org/docs/messages/sharp-missing-in-production
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@img ./node_modules/@img
 
 USER nextjs
 EXPOSE 3000

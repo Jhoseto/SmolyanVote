@@ -13,17 +13,46 @@ import { CookieConsentRoot } from "@/features/cookie-consent";
 import { ContactModal } from "@/features/contacts";
 import { LoginGateModal } from "@/features/auth";
 import { PodcastMiniPlayer } from "@/features/podcast";
+import { useMessengerUiStore } from "@/features/messenger/store/messengerUiStore";
 
 const MessengerRoot = dynamic(
   () => import("@/features/messenger/components/MessengerRoot").then((m) => m.MessengerRoot),
   { ssr: false },
 );
 
-/** Eager — promo CTA / FAB must open download UI without waiting for DeferredHeavyShell. */
 const DownloadModal = dynamic(
   () => import("@/features/messenger/components/DownloadModal").then((m) => m.DownloadModal),
   { ssr: false },
 );
+
+/**
+ * Loads the DownloadModal bundle on first request instead of on every page —
+ * removes ~40 KB of unused JS from first load for the ~99% of visitors who
+ * never open it. Listens for the same "sv:open-download-modal" event (also
+ * caught by the modal itself once mounted) plus the store flag directly,
+ * since the homepage promo CTA can fire before the modal chunk is loaded.
+ */
+function DownloadModalGate() {
+  const open = useMessengerUiStore((s) => s.downloadModalOpen);
+  const setOpen = useMessengerUiStore((s) => s.setDownloadModalOpen);
+  const [everOpened, setEverOpened] = useState(false);
+
+  useEffect(() => {
+    if (open) setEverOpened(true);
+  }, [open]);
+
+  useEffect(() => {
+    function onOpenDownload() {
+      setOpen(true);
+      setEverOpened(true);
+    }
+    window.addEventListener("sv:open-download-modal", onOpenDownload);
+    return () => window.removeEventListener("sv:open-download-modal", onOpenDownload);
+  }, [setOpen]);
+
+  if (!everOpened) return null;
+  return <DownloadModal />;
+}
 
 const GlobalActivityRoot = dynamic(
   () =>
@@ -86,7 +115,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <CookieConsentRoot />
           <BackToTop />
           <HeartbeatBeacon />
-          <DownloadModal />
+          <DownloadModalGate />
           <DeferredHeavyShell />
         </AuthProvider>
       </QueryProvider>

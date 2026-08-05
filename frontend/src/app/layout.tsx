@@ -11,8 +11,9 @@ import { DeferredStylesheet } from "@/shared/ui/DeferredStylesheet";
 import {
   BOOTSTRAP_ICONS_CSS,
   BOOTSTRAP_ICONS_SHELL_CSS,
+  DESKTOP_FONT_PRELOAD_MANROPE_CY,
+  DESKTOP_FONTS_CSS,
   FLAG_ICONS_CSS,
-  GOOGLE_FONTS_DESKTOP,
   MOBILE_FONT_PRELOAD_MANROPE_500_CY,
   MOBILE_FONTS_CSS,
 } from "@/shared/lib/fontUrls";
@@ -197,23 +198,12 @@ export default async function RootLayout({
         />
         {/*
           Fonts + icon packs loaded browser-side (React 19 hoists to <head>).
-          Google Fonts via <link> instead of next/font to keep the build
-          network-independent (matches v1 approach). Cyrillic subsets included.
+          Self-hosted (both viewports) — no Google Fonts CDN hop, which used to
+          block render behind a CSS + chained woff2 round trip. Cyrillic subsets included.
         */}
         <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-          precedence="default"
-        />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-          precedence="default"
-        />
-        <link
           rel="stylesheet"
-          href={GOOGLE_FONTS_DESKTOP}
+          href={DESKTOP_FONTS_CSS}
           media="(min-width: 768px)"
           precedence="default"
         />
@@ -225,6 +215,14 @@ export default async function RootLayout({
         />
         <link
           rel="preload"
+          href={DESKTOP_FONT_PRELOAD_MANROPE_CY}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+          media="(min-width: 768px)"
+        />
+        <link
+          rel="preload"
           href={MOBILE_FONT_PRELOAD_MANROPE_500_CY}
           as="font"
           type="font/woff2"
@@ -232,8 +230,13 @@ export default async function RootLayout({
           media="(max-width: 767px)"
         />
         <DeferredStylesheet
-          href={BOOTSTRAP_ICONS_CSS}
+          href={BOOTSTRAP_ICONS_SHELL_CSS}
           idleTimeoutMs={400}
+          matchMedia="(min-width: 768px)"
+        />
+        <DeferredStylesheet
+          href={BOOTSTRAP_ICONS_CSS}
+          idleTimeoutMs={3000}
           matchMedia="(min-width: 768px)"
         />
         <DeferredStylesheet

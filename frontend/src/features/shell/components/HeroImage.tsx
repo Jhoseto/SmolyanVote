@@ -26,12 +26,17 @@ export function HeroImage() {
           style={{ objectPosition: "center top" }}
         />
       </picture>
-      {/* Desktop LCP — unchanged; hidden on mobile so it is not fetched there */}
+      {/* Desktop LCP — hidden on mobile so it is not fetched there.
+          `priority` makes next/image emit a matching preload (correct srcset/sizes)
+          instead of the old hand-rolled preload that pointed at a different
+          (unoptimized) URL. `fetchPriority` isn't implied by `priority` in this
+          Next version — it must be passed explicitly to reach the <img> and preload. */}
       <Image
         src={HERO_DESKTOP}
         alt="Смолян"
         fill
-        loading="eager"
+        priority
+        fetchPriority="high"
         quality={75}
         sizes="2000px"
         className="object-cover max-md:hidden"
@@ -48,25 +53,20 @@ export function HeroImage() {
   );
 }
 
-/** Preload hints for home — media-scoped so each viewport loads one hero only. */
+/**
+ * Preload hint for the mobile hero only — desktop's next/image `priority` already
+ * emits its own correctly-sized preload (see HeroImage above), so a second manual
+ * one here would just fetch an extra, unused copy of the unoptimized source file.
+ */
 export function HeroImagePreloads() {
   return (
-    <>
-      <link
-        rel="preload"
-        as="image"
-        href={HERO_MOBILE_AVIF}
-        type="image/avif"
-        media="(max-width: 767px)"
-        fetchPriority="high"
-      />
-      <link
-        rel="preload"
-        as="image"
-        href={HERO_DESKTOP}
-        media="(min-width: 768px)"
-        fetchPriority="high"
-      />
-    </>
+    <link
+      rel="preload"
+      as="image"
+      href={HERO_MOBILE_AVIF}
+      type="image/avif"
+      media="(max-width: 767px)"
+      fetchPriority="high"
+    />
   );
 }

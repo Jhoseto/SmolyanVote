@@ -40,6 +40,12 @@ services:
     volumes:
       - ./artifacts/frontend:/app
       - frontend_next_cache:/app/.next/cache
+      # artifacts/frontend is built on Windows (deploy.bat) — its traced node_modules
+      # never includes sharp (optional native dep, wrong platform anyway). sharp-runtime
+      # is provisioned once on the Linux host by post-deploy.sh and persists across
+      # deploys since it lives outside artifacts/frontend (wiped every deploy).
+      - ./sharp-runtime/node_modules/sharp:/app/node_modules/sharp:ro
+      - ./sharp-runtime/node_modules/@img:/app/node_modules/@img:ro
     command: ["node", "server.js"]
     environment:
       PORT: "3000"

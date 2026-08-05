@@ -1,6 +1,8 @@
-/** Google Fonts — desktop (unchanged full set). */
-export const GOOGLE_FONTS_DESKTOP =
-  "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap&subset=cyrillic,latin";
+/** Self-hosted desktop font set — same families/weights as before, no Google CDN hop. */
+export const DESKTOP_FONTS_CSS = "/fonts/desktop/fonts.css";
+
+/** Manrope cyrillic (variable font, covers 400–700) — hero title on desktop. */
+export const DESKTOP_FONT_PRELOAD_MANROPE_CY = "/fonts/desktop/xn7gYHE41ni1AdIRggOxSuXd.woff2";
 
 /** Self-hosted mobile subset — same weights as GOOGLE_FONTS_MOBILE, no Google CDN hop. */
 export const MOBILE_FONTS_CSS = "/fonts/mobile/fonts.css";

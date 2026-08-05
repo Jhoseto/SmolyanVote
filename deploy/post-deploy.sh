@@ -58,6 +58,20 @@ free_web_ports() {
   fi
 }
 
+# next/image optimization needs sharp, but artifacts/frontend is built on the
+# developer's Windows machine — its node_modules has no sharp (or the wrong
+# platform binary), so images would silently serve unoptimized on the site.
+# Install sharp once, for linux/glibc, outside artifacts/frontend (that dir is
+# wiped on every deploy) so it survives across deploys and just gets bind-mounted in.
+SHARP_DIR="$SCRIPT_DIR/sharp-runtime"
+if [[ ! -f "$SHARP_DIR/node_modules/sharp/package.json" ]]; then
+  echo "[frontend] Installing sharp (linux/glibc) for image optimization..."
+  mkdir -p "$SHARP_DIR"
+  [[ -f "$SHARP_DIR/package.json" ]] || echo '{"name":"sharp-runtime","private":true}' > "$SHARP_DIR/package.json"
+  docker run --rm -v "$SHARP_DIR:/app" -w /app node:22-bookworm-slim \
+    npm install sharp@0.34.5 --no-save --omit=dev
+fi
+
 echo "[docker] Building and starting stack (backend + frontend + scraper + caddy)..."
 docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 free_web_ports
