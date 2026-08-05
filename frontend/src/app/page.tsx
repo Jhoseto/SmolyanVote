@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { Hero, HeroImage, HeroImagePreloads } from "@/features/shell";
+import { HeroImage, HeroImagePreloads } from "@/features/shell";
+
+const Hero = dynamic(() =>
+  import("@/features/shell/components/Hero").then((m) => ({
+    default: m.Hero,
+  })),
+);
 
 const TitleSection = dynamic(() =>
   import("@/features/shell/components/TitleSection").then((m) => ({

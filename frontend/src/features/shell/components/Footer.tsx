@@ -76,6 +76,7 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
       <div aria-hidden className="site-footer__top-line" />
 
       <Container className="relative z-10 py-8 md:py-9">
+        <h2 className="sr-only">SmolyanVote</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           <div className="flex justify-center sm:col-span-2 lg:col-span-1 lg:justify-start">
             <div className="flex w-fit flex-col items-center gap-3.5 lg:items-start">
@@ -141,9 +142,9 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
           </div>
 
           <div>
-            <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
+            <h3 className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
               {t.footer.navHeading}
-            </h4>
+            </h3>
             <nav className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5">
               {NAVIGATION.map((link) => (
                 <Link key={link.href} href={link.href} className={linkClass}>
@@ -154,9 +155,9 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
           </div>
 
           <div>
-            <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
+            <h3 className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
               {t.footer.participateHeading}
-            </h4>
+            </h3>
             <nav className="mt-2.5 flex flex-col gap-1.5">
               {PARTICIPATE.map((link) =>
                 "download" in link && link.download ? (
@@ -173,9 +174,9 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
           </div>
 
           <div>
-            <h4 className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
+            <h3 className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
               {t.footer.legalHeading}
-            </h4>
+            </h3>
             <nav className="mt-2.5 flex flex-col gap-1.5">
               {LEGAL.map((link) => (
                 <Link key={link.label} href={link.href} className={linkClass}>

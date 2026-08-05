@@ -10,9 +10,11 @@ import { NewsletterSubscribeButton } from "@/features/newsletter";
 import { DeferredStylesheet } from "@/shared/ui/DeferredStylesheet";
 import {
   BOOTSTRAP_ICONS_CSS,
+  BOOTSTRAP_ICONS_SHELL_CSS,
   FLAG_ICONS_CSS,
   GOOGLE_FONTS_DESKTOP,
-  GOOGLE_FONTS_MOBILE,
+  MOBILE_FONT_PRELOAD_MANROPE_500_CY,
+  MOBILE_FONTS_CSS,
 } from "@/shared/lib/fontUrls";
 import { getShellMessages, resolveLanguageFromGoogtransCookie } from "@/lib/i18n/locales";
 
@@ -217,9 +219,17 @@ export default async function RootLayout({
         />
         <link
           rel="stylesheet"
-          href={GOOGLE_FONTS_MOBILE}
+          href={MOBILE_FONTS_CSS}
           media="(max-width: 767px)"
           precedence="default"
+        />
+        <link
+          rel="preload"
+          href={MOBILE_FONT_PRELOAD_MANROPE_500_CY}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+          media="(max-width: 767px)"
         />
         <DeferredStylesheet
           href={BOOTSTRAP_ICONS_CSS}
@@ -227,8 +237,13 @@ export default async function RootLayout({
           matchMedia="(min-width: 768px)"
         />
         <DeferredStylesheet
-          href={BOOTSTRAP_ICONS_CSS}
+          href={BOOTSTRAP_ICONS_SHELL_CSS}
           idleTimeoutMs={1200}
+          matchMedia="(max-width: 767px)"
+        />
+        <DeferredStylesheet
+          href={BOOTSTRAP_ICONS_CSS}
+          idleTimeoutMs={5000}
           matchMedia="(max-width: 767px)"
         />
         <DeferredStylesheet href={FLAG_ICONS_CSS} matchMedia="(max-width: 767px)" />

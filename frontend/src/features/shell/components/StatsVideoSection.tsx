@@ -14,7 +14,7 @@ const MuxPlayer = dynamic(() => import("@mux/mux-player-react"), {
 });
 
 const MUX_PLAYBACK_ID = "NEMsgbV9d7wxN9I84A4BGN400BkSluX3VRvkRbjQgl014";
-const PROMO_THUMBNAIL = "/images/web/promo-thumbnail.png";
+const PROMO_THUMBNAIL = "/images/web/promo-thumbnail.webp";
 
 const STAT_META = [
   {
@@ -213,7 +213,8 @@ function PromoVideo() {
               src={PROMO_THUMBNAIL}
               alt="SmolyanVote промо"
               fill
-              sizes="(max-width: 768px) 100vw, 1200px"
+              quality={70}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 720px"
               className="object-cover object-center"
             />
             <span

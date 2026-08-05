@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { motion } from "framer-motion";
 
 /** Lazy — tsparticles stays out of the initial hero JS chunk / LCP path. */
 const ParticlesBackground = dynamic(
@@ -21,7 +20,7 @@ const TITLE_NUDGE_Y = -70; // заглавие „Гласът на Смолян
 const SUBTITLE_NUDGE_Y = -120; // подзаглавие
 const BUTTON_NUDGE_Y = -90; // бутон „Участвай сега“
 
-/** Hero overlay — particles + motion copy (LCP image is {@link HeroImage}). */
+/** Hero overlay — particles + CSS motion copy (LCP image is {@link HeroImage}). */
 export function Hero() {
   return (
     <>
@@ -43,11 +42,8 @@ export function Hero() {
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1200px] flex-col px-4 md:px-8 lg:ml-[8%] lg:mr-auto lg:max-w-[55%]">
-        <motion.h1
-          initial={{ opacity: 0, x: -40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
-          className="text-gradient-brand text-[clamp(2.6rem,6.5vw,4.5rem)] font-medium leading-none tracking-[-0.02em]"
+        <h1
+          className="hero-animate-title text-gradient-brand text-[clamp(2.6rem,6.5vw,4.5rem)] font-medium leading-none tracking-[-0.02em]"
           style={{
             filter: "drop-shadow(0 0 18px rgba(76,175,80,0.35))",
             position: "relative",
@@ -55,24 +51,18 @@ export function Hero() {
           }}
         >
           Гласът на Смолян
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, x: -28 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, delay: 0.12, ease: [0.25, 1, 0.5, 1] }}
-          className="relative text-[clamp(1.05rem,2.4vw,1.45rem)] font-light leading-none text-[#5a6c7d]"
+        </h1>
+        <p
+          className="hero-animate-subtitle relative text-[clamp(1.05rem,2.4vw,1.45rem)] font-light leading-none text-[#5a6c7d]"
           style={{
             marginTop: "calc(85vh * 255 / 2000 - 1.35rem)",
             top: SUBTITLE_NUDGE_Y,
           }}
         >
           Вашият глас · Вашият град · Вашето мнение
-        </motion.p>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.25 }}
-          className="relative"
+        </p>
+        <div
+          className="hero-animate-cta relative"
           style={{
             marginTop: "calc(85vh * 255 / 2000 - 3.35rem)",
             top: BUTTON_NUDGE_Y,
@@ -88,7 +78,7 @@ export function Hero() {
             />
             Участвай сега
           </Link>
-        </motion.div>
+        </div>
       </div>
     </>
   );

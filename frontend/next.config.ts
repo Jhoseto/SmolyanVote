@@ -6,6 +6,11 @@ const API_ORIGIN =
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ??
   "http://localhost:2662";
 
+const POLYFILL_ALIASES = {
+  "../build/polyfills/polyfill-module": "./src/lib/modern-polyfill.js",
+  "next/dist/build/polyfills/polyfill-module": "./src/lib/modern-polyfill.js",
+} as const;
+
 const SECURITY_HEADERS = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -19,6 +24,16 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  turbopack: {
+    resolveAlias: POLYFILL_ALIASES,
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      ...POLYFILL_ALIASES,
+    };
+    return config;
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
@@ -29,6 +44,15 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: SECURITY_HEADERS,
+      },
+      {
+        source: "/fonts/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
       },
       {
         source: "/images/:path*",

@@ -173,6 +173,60 @@ html {
   animation: target-highlight 2s ease-out;
 }
 
+/* Hero entrance — matches former framer-motion timings (no JS on LCP path). */
+@keyframes hero-enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hero-enter-left-sm {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hero-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-animate-title {
+  animation: hero-enter-left 0.7s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.hero-animate-subtitle {
+  animation: hero-enter-left-sm 0.7s cubic-bezier(0.25, 1, 0.5, 1) 0.12s both;
+}
+
+.hero-animate-cta {
+  animation: hero-enter-up 0.6s ease 0.25s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-animate-title,
+  .hero-animate-subtitle,
+  .hero-animate-cta {
+    animation: none;
+  }
+}
+
 body {
   background: var(--color-surface-light);
   color: var(--color-text-primary);

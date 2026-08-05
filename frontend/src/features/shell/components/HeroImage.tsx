@@ -1,7 +1,9 @@
 import Image from "next/image";
 
 const HERO_DESKTOP = "/images/web/hero3.jpg";
-const HERO_MOBILE = "/images/web/hero3-mobile.jpg";
+const HERO_MOBILE_JPG = "/images/web/hero3-mobile.jpg";
+const HERO_MOBILE_WEBP = "/images/web/hero3-mobile.webp";
+const HERO_MOBILE_AVIF = "/images/web/hero3-mobile.avif";
 
 /**
  * LCP hero — split by viewport so mobile never downloads the desktop asset.
@@ -10,16 +12,20 @@ const HERO_MOBILE = "/images/web/hero3-mobile.jpg";
 export function HeroImage() {
   return (
     <>
-      {/* Mobile LCP — in HTML immediately, no /_next/image round-trip on Slow 4G */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={HERO_MOBILE}
-        alt="Смолян"
-        decoding="async"
-        fetchPriority="high"
-        className="absolute inset-0 h-full w-full object-cover md:hidden"
-        style={{ objectPosition: "center top" }}
-      />
+      {/* Mobile LCP — static asset in HTML (WebP + JPG fallback), no /_next/image on Slow 4G */}
+      <picture className="absolute inset-0 md:hidden">
+        <source srcSet={HERO_MOBILE_AVIF} type="image/avif" />
+        <source srcSet={HERO_MOBILE_WEBP} type="image/webp" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={HERO_MOBILE_JPG}
+          alt="Смолян"
+          decoding="async"
+          fetchPriority="high"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: "center top" }}
+        />
+      </picture>
       {/* Desktop LCP — unchanged; hidden on mobile so it is not fetched there */}
       <Image
         src={HERO_DESKTOP}
@@ -49,7 +55,8 @@ export function HeroImagePreloads() {
       <link
         rel="preload"
         as="image"
-        href={HERO_MOBILE}
+        href={HERO_MOBILE_AVIF}
+        type="image/avif"
         media="(max-width: 767px)"
         fetchPriority="high"
       />
