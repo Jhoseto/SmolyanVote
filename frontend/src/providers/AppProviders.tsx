@@ -12,11 +12,19 @@ import { Toaster, ConfirmDialogHost, BackToTop, HeartbeatBeacon, ModerationWarni
 import { CookieConsentRoot } from "@/features/cookie-consent";
 import { ContactModalQuerySync } from "@/features/contacts";
 import { useMessengerUiStore } from "@/features/messenger/store/messengerUiStore";
+import { useIsDesktopMessenger } from "@/features/messenger/lib/isDesktopMessenger";
+import { MessengerFabAnon } from "@/features/messenger/components/MessengerFabAnon";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
 import { useContactModalStore } from "@/shared/lib/contactModalStore";
+import { onShareToChat } from "@/shared/lib/shareToChat";
 
 const MessengerRoot = dynamic(
   () => import("@/features/messenger/components/MessengerRoot").then((m) => m.MessengerRoot),
+  { ssr: false },
+);
+
+const MessengerFabImpl = dynamic(
+  () => import("@/features/messenger/components/MessengerFab").then((m) => m.MessengerFab),
   { ssr: false },
 );
 
@@ -114,6 +122,66 @@ const GlobalActivityRoot = dynamic(
   { ssr: false },
 );
 
+/**
+ * The FAB has to *look* instant (it's a persistent piece of chrome), so it's
+ * mounted unconditionally — but the *authenticated* `MessengerFab` imports
+ * `useUnreadCount` → `useStompConnectionState` → `@stomp/stompjs`
+ * (statically, at module scope). Rendering that version for anonymous
+ * visitors too would silently drag the ~39 KiB gzipped STOMP chunk back
+ * into every anonymous page load, defeating `MessengerRootGate` below.
+ * `MessengerFabAnon` is a dependency-free lookalike used until auth is
+ * confirmed, so anonymous visitors never touch that import at all.
+ */
+function MessengerFabGate() {
+  const { isAuthenticated, isHydrated } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  if (isHydrated && isAuthenticated) return <MessengerFabImpl />;
+  return <MessengerFabAnon />;
+}
+
+/**
+ * `PublicationShareSheet` (and similar "share" actions) dispatch a
+ * `shareToChat(...)` window event that the real `ShareToChatDialog` (bundled
+ * inside `MessengerRoot`) listens for. For anonymous users / non-desktop
+ * messenger layouts that dialog never mounts, so this tiny, always-mounted
+ * fallback covers the same cases it would otherwise handle (routing to the
+ * download promo) — see `ShareToChatDialog.tsx` for the mirrored condition.
+ * For authenticated desktop users the real dialog is already mounted and
+ * handles the event itself; this fallback simply no-ops for that case.
+ */
+function ShareToChatFallbackGate() {
+  const { isAuthenticated } = useAuth();
+  const isDesktopMessenger = useIsDesktopMessenger();
+  const setDownloadModalOpen = useMessengerUiStore((s) => s.setDownloadModalOpen);
+
+  useEffect(
+    () =>
+      onShareToChat(() => {
+        if (!isAuthenticated || !isDesktopMessenger) setDownloadModalOpen(true);
+      }),
+    [isAuthenticated, isDesktopMessenger, setDownloadModalOpen],
+  );
+
+  return null;
+}
+
+/**
+ * The full messenger shell (STOMP client, LiveKit call controller, panel,
+ * floating windows — ~80 KiB gzipped) is only ever functional for logged-in
+ * visitors: `useMessengerRealtime` disconnects/no-ops without a user. Rather
+ * than idle-loading it for anonymous visitors too (it used to load a few
+ * seconds after idle regardless of auth), it now only mounts once
+ * authentication is confirmed — removing that whole bundle from anonymous
+ * page loads, which is the vast majority of homepage visits.
+ */
+function MessengerRootGate() {
+  const { isAuthenticated, isHydrated } = useAuth();
+  if (!isHydrated || !isAuthenticated) return null;
+  return <MessengerRoot />;
+}
+
 function DeferredHeavyShell() {
   const { isAuthenticated, isHydrated } = useAuth();
   const [ready, setReady] = useState(false);
@@ -144,7 +212,6 @@ function DeferredHeavyShell() {
   return (
     <>
       <PodcastMiniPlayer />
-      <MessengerRoot />
       <GlobalActivityRoot />
     </>
   );
@@ -171,6 +238,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <BackToTop />
           <HeartbeatBeacon />
           <DownloadModalGate />
+          <MessengerFabGate />
+          <ShareToChatFallbackGate />
+          <MessengerRootGate />
           <DeferredHeavyShell />
         </AuthProvider>
       </QueryProvider>

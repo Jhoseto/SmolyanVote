@@ -1,18 +1,25 @@
-import Image from "next/image";
-
-const HERO_DESKTOP = "/images/web/hero3.jpg";
 const HERO_MOBILE_JPG = "/images/web/hero3-mobile.jpg";
 const HERO_MOBILE_WEBP = "/images/web/hero3-mobile.webp";
 const HERO_MOBILE_AVIF = "/images/web/hero3-mobile.avif";
+const HERO_DESKTOP_JPG = "/images/web/hero3-desktop.jpg";
+const HERO_DESKTOP_WEBP = "/images/web/hero3-desktop.webp";
+const HERO_DESKTOP_AVIF = "/images/web/hero3-desktop.avif";
 
 /**
- * LCP hero — split by viewport so mobile never downloads the desktop asset.
- * Mobile uses a pre-sized static JPEG (~32 KiB); desktop keeps Next/image pipeline.
+ * LCP hero — split by viewport so each side only ever fetches its own asset.
+ * Both are plain pre-sized static images (AVIF/WebP + JPG fallback), not
+ * `next/image`: that component still emits an *unconditional*
+ * `<link rel="preload">` for whichever Image has `priority`/`fetchPriority`
+ * set, with no way to media-guard it — on mobile that preload fired anyway,
+ * at the very front of <head>, competing at high priority against the real
+ * mobile hero for bandwidth (measured contributor to a 4.6s mobile LCP).
+ * Plain `<picture>` + a manually media-guarded preload link gives full
+ * control with zero risk of the two viewports' preloads colliding.
  */
 export function HeroImage() {
   return (
     <>
-      {/* Mobile LCP — static asset in HTML (WebP + JPG fallback), no /_next/image on Slow 4G */}
+      {/* Mobile LCP — static asset in HTML (AVIF/WebP + JPG fallback) */}
       <picture className="absolute inset-0 md:hidden">
         <source srcSet={HERO_MOBILE_AVIF} type="image/avif" />
         <source srcSet={HERO_MOBILE_WEBP} type="image/webp" />
@@ -26,22 +33,22 @@ export function HeroImage() {
           style={{ objectPosition: "center top" }}
         />
       </picture>
-      {/* Desktop LCP — hidden on mobile so it is not fetched there.
-          `priority` makes next/image emit a matching preload (correct srcset/sizes)
-          instead of the old hand-rolled preload that pointed at a different
-          (unoptimized) URL. `fetchPriority` isn't implied by `priority` in this
-          Next version — it must be passed explicitly to reach the <img> and preload. */}
-      <Image
-        src={HERO_DESKTOP}
-        alt="Смолян"
-        fill
-        priority
-        fetchPriority="high"
-        quality={75}
-        sizes="2000px"
-        className="object-cover max-md:hidden"
-        style={{ objectPosition: "center top" }}
-      />
+      {/* Desktop LCP — static asset, hidden on mobile via CSS only (no
+          `<img>` swap based on viewport, so nothing here can leak a
+          cross-viewport network request). */}
+      <picture className="absolute inset-0 max-md:hidden">
+        <source srcSet={HERO_DESKTOP_AVIF} type="image/avif" />
+        <source srcSet={HERO_DESKTOP_WEBP} type="image/webp" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={HERO_DESKTOP_JPG}
+          alt="Смолян"
+          decoding="async"
+          fetchPriority="high"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: "center top" }}
+        />
+      </picture>
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -53,20 +60,27 @@ export function HeroImage() {
   );
 }
 
-/**
- * Preload hint for the mobile hero only — desktop's next/image `priority` already
- * emits its own correctly-sized preload (see HeroImage above), so a second manual
- * one here would just fetch an extra, unused copy of the unoptimized source file.
- */
+/** Preload hints for both hero viewports — each strictly media-guarded so
+ *  only the one that will actually paint is ever requested. */
 export function HeroImagePreloads() {
   return (
-    <link
-      rel="preload"
-      as="image"
-      href={HERO_MOBILE_AVIF}
-      type="image/avif"
-      media="(max-width: 767px)"
-      fetchPriority="high"
-    />
+    <>
+      <link
+        rel="preload"
+        as="image"
+        href={HERO_MOBILE_AVIF}
+        type="image/avif"
+        media="(max-width: 767px)"
+        fetchPriority="high"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href={HERO_DESKTOP_AVIF}
+        type="image/avif"
+        media="(min-width: 768px)"
+        fetchPriority="high"
+      />
+    </>
   );
 }

@@ -244,9 +244,14 @@ export default async function RootLayout({
           idleTimeoutMs={1200}
           matchMedia="(max-width: 767px)"
         />
+        {/* Shell subset alone covers 100% of the homepage's icon usage (Lighthouse
+            measured the full sheet at 98% unused there) — pushed further out so it
+            reliably loads well after first paint/idle settle, not competing with it,
+            while still being ready long before any real visitor needs an icon outside
+            the subset (e.g. opening a menu that uses a rarer glyph). */}
         <DeferredStylesheet
           href={BOOTSTRAP_ICONS_CSS}
-          idleTimeoutMs={5000}
+          idleTimeoutMs={8000}
           matchMedia="(max-width: 767px)"
         />
         <DeferredStylesheet href={FLAG_ICONS_CSS} matchMedia="(max-width: 767px)" />

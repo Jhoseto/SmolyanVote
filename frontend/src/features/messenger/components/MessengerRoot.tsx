@@ -9,7 +9,6 @@ import { useAuth } from "@/shared/lib/authContext";
 import { useMessengerUiStore } from "../store/messengerUiStore";
 import { useMessengerPrefsStore } from "../store/messengerPrefsStore";
 import { useIsDesktopMessenger } from "../lib/isDesktopMessenger";
-import { MessengerFab } from "./MessengerFab";
 import { MessengerPanel } from "./MessengerPanel";
 import { FloatingChatWindow } from "./FloatingChatWindow";
 import { MessengerDock } from "./MessengerDock";
@@ -23,7 +22,14 @@ import "./messenger-desktop.css";
 
 /**
  * App-wide messenger shell (MODERN_FRONTEND_PLAN.md Фаза 8) — mounted in
- * `AppProviders`. STOMP + multi-window chat + LiveKit call controller.
+ * `AppProviders`, but only once the visitor is authenticated (it is 100%
+ * inert for anonymous users: `useMessengerRealtime` no-ops without a user,
+ * and the FAB/share-to-chat entry points route anonymous clicks to the
+ * download promo instead — see `MessengerFabGate`/`ShareToChatFallbackGate`
+ * in `AppProviders.tsx`, which cover those without needing this bundle).
+ * STOMP client + multi-window chat + LiveKit call controller — the
+ * heaviest client feature in the app (~80 KiB gzipped across two chunks),
+ * so keeping it fully out of anonymous first loads is a real, measured win.
  */
 export function MessengerRoot() {
   useMessengerRealtime();
@@ -58,7 +64,6 @@ export function MessengerRoot() {
 
   return (
     <div className="sv-msg" data-density={density}>
-      <MessengerFab />
       <MessengerPanel />
       <ConnectionBanner />
       <MessengerDock />
