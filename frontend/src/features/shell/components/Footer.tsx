@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LOGO_NAV } from "@/shared/lib/brandAssets";
 import { Container } from "@/shared/ui";
 import { useAuth } from "@/shared/lib/authContext";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
@@ -80,7 +81,7 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
             <div className="flex w-fit flex-col items-center gap-3.5 lg:items-start">
               <Link href="/" className="inline-flex items-center gap-2.5">
                 <Image
-                  src="/images/logoNew.png"
+                  src={LOGO_NAV}
                   alt="SmolyanVote"
                   width={40}
                   height={40}

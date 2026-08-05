@@ -8,6 +8,12 @@ import { NotificationBell } from "@/features/notifications";
 import { CookiePreferencesLink } from "@/features/cookie-consent";
 import { NewsletterSubscribeButton } from "@/features/newsletter";
 import { DeferredStylesheet } from "@/shared/ui/DeferredStylesheet";
+import {
+  BOOTSTRAP_ICONS_CSS,
+  FLAG_ICONS_CSS,
+  GOOGLE_FONTS_DESKTOP,
+  GOOGLE_FONTS_MOBILE,
+} from "@/shared/lib/fontUrls";
 import { getShellMessages, resolveLanguageFromGoogtransCookie } from "@/lib/i18n/locales";
 
 const SITE_URL = "https://smolyanvote.com";
@@ -205,15 +211,32 @@ export default async function RootLayout({
         />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap&subset=cyrillic,latin"
+          href={GOOGLE_FONTS_DESKTOP}
+          media="(min-width: 768px)"
           precedence="default"
         />
         <link
           rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          href={GOOGLE_FONTS_MOBILE}
+          media="(max-width: 767px)"
           precedence="default"
         />
-        <DeferredStylesheet href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css" />
+        <DeferredStylesheet
+          href={BOOTSTRAP_ICONS_CSS}
+          idleTimeoutMs={400}
+          matchMedia="(min-width: 768px)"
+        />
+        <DeferredStylesheet
+          href={BOOTSTRAP_ICONS_CSS}
+          idleTimeoutMs={1200}
+          matchMedia="(max-width: 767px)"
+        />
+        <DeferredStylesheet href={FLAG_ICONS_CSS} matchMedia="(max-width: 767px)" />
+        <DeferredStylesheet
+          href={FLAG_ICONS_CSS}
+          idleTimeoutMs={2500}
+          matchMedia="(min-width: 768px)"
+        />
 
         <AppProviders>
           <a

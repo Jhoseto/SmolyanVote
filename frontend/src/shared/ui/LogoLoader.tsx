@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/shared/lib/cn";
+import { LOGO_NAV } from "@/shared/lib/brandAssets";
 
 type LogoLoaderSize = "sm" | "md" | "lg";
 
@@ -57,12 +58,11 @@ export function LogoLoader({
           className="logo-loader-pulse absolute inset-1 rounded-full bg-primary/10"
         />
         <Image
-          src="/images/logoNew.png"
+          src={LOGO_NAV}
           alt=""
           width={s.logo}
           height={s.logo}
           className="logo-loader-logo relative z-10 object-contain"
-          priority
         />
       </div>
       {showLabel && (

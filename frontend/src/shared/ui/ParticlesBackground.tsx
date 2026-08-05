@@ -54,9 +54,12 @@ export function ParticlesBackground({
       if (!cancelled) setReady(true);
     };
 
+    const mobile = window.matchMedia("(max-width: 767px)").matches;
+    const idleTimeout = mobile ? 2200 : 600;
+
     // Defer until idle so hero image + text paint first.
     if (typeof window.requestIdleCallback === "function") {
-      const idleId = window.requestIdleCallback(enable, { timeout: 600 });
+      const idleId = window.requestIdleCallback(enable, { timeout: idleTimeout });
       return () => {
         cancelled = true;
         window.cancelIdleCallback(idleId);

@@ -213,7 +213,7 @@ function PromoVideo() {
               src={PROMO_THUMBNAIL}
               alt="SmolyanVote промо"
               fill
-              sizes="(max-width: 1200px) 100vw, 1200px"
+              sizes="(max-width: 768px) 100vw, 1200px"
               className="object-cover object-center"
             />
             <span

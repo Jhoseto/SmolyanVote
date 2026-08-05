@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { translateTo } from "@/lib/i18n-web-translate";
+import { ensureGoogleTranslateLoaded } from "@/lib/i18n-web-translate/ensureGoogleTranslate";
 import {
   LANGUAGE_LABELS,
   SUPPORTED_LANGUAGES,
@@ -35,7 +36,10 @@ export function LanguageSwitcher({ className, label }: LanguageSwitcherProps) {
       <button
         type="button"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          ensureGoogleTranslateLoaded();
+          setOpen((v) => !v);
+        }}
         className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav-muted)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary"
       >
         <i className="bi bi-globe2 text-[1.05rem]" />

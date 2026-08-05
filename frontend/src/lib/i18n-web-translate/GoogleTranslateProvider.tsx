@@ -1,8 +1,9 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { applyStoredLanguage } from "./googleTranslate";
+import { shouldLoadGoogleTranslateOnBoot } from "./ensureGoogleTranslate";
 
 declare global {
   interface Window {
@@ -61,7 +62,6 @@ function hideEl(el: HTMLElement) {
   el.setAttribute("aria-hidden", "true");
 }
 
-/** Hide Google Translate top banner without destroying translation. */
 function hideGoogleTranslateChrome() {
   ensureHideStyle();
 
@@ -85,13 +85,30 @@ function hideGoogleTranslateChrome() {
 }
 
 /**
- * Loads the hidden Google Website Translator widget (Layer 1).
- * Banner chrome is forced hidden; only our LanguageSwitcher is visible.
+ * Loads Google Website Translator on demand (language menu or active translation).
+ * Default bg-BG homepage skips ~90 KiB translate.googleapis.com until needed.
  */
 export function GoogleTranslateProvider() {
+  const [scriptEnabled, setScriptEnabled] = useState(false);
+
   useEffect(() => {
     applyStoredLanguage();
     ensureHideStyle();
+    hideGoogleTranslateChrome();
+
+    window.__svEnableGoogleTranslate = () => setScriptEnabled(true);
+
+    if (shouldLoadGoogleTranslateOnBoot()) {
+      setScriptEnabled(true);
+    }
+
+    return () => {
+      delete window.__svEnableGoogleTranslate;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!scriptEnabled) return;
 
     window.googleTranslateElementInit = () => {
       if (!window.google?.translate) return;
@@ -121,15 +138,17 @@ export function GoogleTranslateProvider() {
       observer.disconnect();
       delete window.googleTranslateElementInit;
     };
-  }, []);
+  }, [scriptEnabled]);
 
   return (
     <>
       <div id="google_translate_element" className="skiptranslate" aria-hidden style={{ display: "none" }} />
-      <Script
-        src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
-        strategy="afterInteractive"
-      />
+      {scriptEnabled && (
+        <Script
+          src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+          strategy="lazyOnload"
+        />
+      )}
     </>
   );
 }

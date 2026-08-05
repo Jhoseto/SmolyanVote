@@ -3,6 +3,7 @@ export { VoteNavMenu } from "./components/VoteNavMenu";
 export { MonitorNavMenu } from "./components/MonitorNavMenu";
 export { Footer } from "./components/Footer";
 export { Hero } from "./components/Hero";
+export { HeroImage, HeroImagePreloads } from "./components/HeroImage";
 export { TitleSection } from "./components/TitleSection";
 export { StatsVideoSection } from "./components/StatsVideoSection";
 export { MotivationPanels } from "./components/MotivationPanels";

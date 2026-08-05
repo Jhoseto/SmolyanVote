@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { LOGO_CAROUSEL } from "@/shared/lib/brandAssets";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Container } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -61,10 +62,11 @@ function CarouselHubLogo() {
       }}
     >
       <Image
-        src="/images/logoNew.png"
+        src={LOGO_CAROUSEL}
         alt=""
         fill
         sizes="(max-width:640px) 148px, 240px"
+        quality={90}
         className="object-contain select-none"
         style={{
           filter:

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { LOGO_NAV } from "@/shared/lib/brandAssets";
 import { usePathname } from "next/navigation";
 import { useState, type MouseEvent, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
@@ -23,20 +24,26 @@ interface NavbarProps {
 /** Fixed glass navbar — visual parity with v1 `navbar-glassmorphism`. */
 export function Navbar({ notificationSlot, lang }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSubmenu, setMobileSubmenu] = useState<"vote" | "monitor" | "profile" | null>(null);
   const pathname = usePathname();
   const t = getShellMessages(lang);
   const { isAuthenticated, isHydrated } = useAuth();
   const openAuth = useLoginGateStore((s) => s.open);
 
+  function closeMobileNav() {
+    setMobileOpen(false);
+    setMobileSubmenu(null);
+  }
+
   function handleLoginClick() {
     hapticTap();
-    setMobileOpen(false);
+    closeMobileNav();
     openAuth("login");
   }
 
   function handleRegisterClick() {
     hapticTap();
-    setMobileOpen(false);
+    closeMobileNav();
     openAuth("register");
   }
 
@@ -45,7 +52,7 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
     if (pathname !== "/") return;
     e.preventDefault();
     hapticTap();
-    setMobileOpen(false);
+    closeMobileNav();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -65,7 +72,7 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
             className="flex shrink-0 items-center gap-2.5"
           >
             <Image
-              src="/images/logoNew.png"
+              src={LOGO_NAV}
               alt="SmolyanVote"
               width={40}
               height={40}
@@ -138,7 +145,10 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
             aria-expanded={mobileOpen}
             onClick={() => {
               hapticTap();
-              setMobileOpen((v) => !v);
+              setMobileOpen((v) => {
+                if (v) setMobileSubmenu(null);
+                return !v;
+              });
             }}
             className="flex h-11 w-11 flex-col items-center justify-center gap-1.5 xl:hidden"
           >
@@ -165,81 +175,131 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
       </div>
 
       {mobileOpen && (
-        <div className="max-h-[calc(100vh-var(--navbar-height))] overflow-y-auto border-t border-black/[0.06] bg-white/95 px-4 py-3 backdrop-blur-xl xl:hidden">
-          <div className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item) => {
-              if (item.key === "vote") {
-                return (
-                  <div key="vote" className="py-1">
+        <div className="flex max-h-[calc(100dvh-var(--navbar-height))] flex-col border-t border-black/[0.06] bg-white/95 backdrop-blur-xl xl:hidden">
+          <div className="shrink-0 px-4 py-3">
+            <div className="flex flex-col gap-1">
+              {NAV_ITEMS.map((item) => {
+                if (item.key === "vote") {
+                  return (
                     <VoteNavMenu
+                      key="vote"
+                      layout="drawer"
+                      drawerPart="trigger"
                       label={t.nav.vote}
-                      onNavigate={() => setMobileOpen(false)}
-                      className="w-full [&_button]:w-full [&_button]:justify-start"
+                      open={mobileSubmenu === "vote"}
+                      onOpenChange={(next) => setMobileSubmenu(next ? "vote" : null)}
+                      className="w-full"
                     />
-                  </div>
-                );
-              }
-              if (item.key === "monitor") {
-                return (
-                  <div key="monitor" className="py-1">
+                  );
+                }
+                if (item.key === "monitor") {
+                  return (
                     <MonitorNavMenu
+                      key="monitor"
+                      layout="drawer"
+                      drawerPart="trigger"
                       label={t.nav.monitor}
-                      onNavigate={() => setMobileOpen(false)}
-                      className="w-full [&_button]:w-full [&_button]:justify-start"
+                      open={mobileSubmenu === "monitor"}
+                      onOpenChange={(next) => setMobileSubmenu(next ? "monitor" : null)}
+                      className="w-full"
                     />
-                  </div>
+                  );
+                }
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={(e) => {
+                      if (item.href === "/") {
+                        handleHomeNavClick(e);
+                        return;
+                      }
+                      closeMobileNav();
+                    }}
+                    className={cn(
+                      "flex min-h-[44px] items-center gap-3 rounded-[12px] px-3 font-sans text-[0.95rem] font-light tracking-wide text-[color:var(--color-text-nav)] transition-colors hover:bg-primary-50 hover:text-primary",
+                      active && "bg-primary-50 text-primary",
+                    )}
+                  >
+                    <i className={cn("bi", item.icon, "text-[1.2rem]")} />
+                    <span>{t.nav[item.key]}</span>
+                  </Link>
                 );
-              }
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={(e) => {
-                    if (item.href === "/") {
-                      handleHomeNavClick(e);
-                      return;
-                    }
-                    setMobileOpen(false);
-                  }}
-                  className={cn(
-                    "flex min-h-[44px] items-center gap-3 rounded-[12px] px-3 font-sans text-[0.95rem] font-light tracking-wide text-[color:var(--color-text-nav)] transition-colors hover:bg-primary-50 hover:text-primary",
-                    active && "bg-primary-50 text-primary",
-                  )}
-                >
-                  <i className={cn("bi", item.icon, "text-[1.2rem]")} />
-                  <span>{t.nav[item.key]}</span>
-                </Link>
-              );
-            })}
-          </div>
-          <div className="mt-3 flex items-center justify-between border-t border-border-default/60 pt-3">
-            <div className="flex items-center gap-2">
-              {!isHydrated ? (
-                <div className="h-10 w-28" aria-hidden />
-              ) : isAuthenticated ? (
-                <UserMenu logoutLabel={t.nav.logout} />
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleLoginClick}
-                    className="rounded-full border border-primary/40 px-4 py-2 font-sans text-sm font-normal tracking-wide text-primary"
-                  >
-                    {t.nav.login}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRegisterClick}
-                    className="btn-brand rounded-full px-4 py-2 font-sans text-sm font-normal tracking-wide"
-                  >
-                    {t.nav.register}
-                  </button>
-                </>
+              })}
+              {isHydrated && isAuthenticated && (
+                <div className="mt-2 border-t border-border-default/60 pt-2">
+                  <UserMenu
+                    layout="drawer"
+                    drawerPart="trigger"
+                    logoutLabel={t.nav.logout}
+                    open={mobileSubmenu === "profile"}
+                    onOpenChange={(next) => setMobileSubmenu(next ? "profile" : null)}
+                    className="w-full"
+                  />
+                </div>
               )}
-              {isHydrated ? notificationSlot : null}
             </div>
-            <LanguageSwitcher label={t.nav.languages} />
+          </div>
+
+          {mobileSubmenu && (
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-primary/15 bg-primary-50/25 px-4 py-3 shadow-[inset_0_1px_0_rgba(25,134,28,0.08)]">
+              {mobileSubmenu === "vote" && (
+                <VoteNavMenu
+                  layout="drawer"
+                  drawerPart="panel"
+                  label={t.nav.vote}
+                  onNavigate={closeMobileNav}
+                />
+              )}
+              {mobileSubmenu === "monitor" && (
+                <MonitorNavMenu
+                  layout="drawer"
+                  drawerPart="panel"
+                  label={t.nav.monitor}
+                  onNavigate={closeMobileNav}
+                />
+              )}
+              {mobileSubmenu === "profile" && (
+                <div className="overflow-hidden rounded-[var(--radius-md)] border border-border-default/60 bg-white py-2 shadow-sm">
+                  <UserMenu
+                    layout="drawer"
+                    drawerPart="panel"
+                    logoutLabel={t.nav.logout}
+                    onNavigate={closeMobileNav}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-auto shrink-0 border-t border-border-default/60 px-4 py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                {!isHydrated ? (
+                  <div className="h-10 w-28" aria-hidden />
+                ) : !isAuthenticated ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleLoginClick}
+                      className="rounded-full border border-primary/40 px-4 py-2 font-sans text-sm font-normal tracking-wide text-primary"
+                    >
+                      {t.nav.login}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRegisterClick}
+                      className="btn-brand rounded-full px-4 py-2 font-sans text-sm font-normal tracking-wide"
+                    >
+                      {t.nav.register}
+                    </button>
+                  </>
+                ) : null}
+                {isHydrated ? notificationSlot : null}
+              </div>
+              <LanguageSwitcher label={t.nav.languages} />
+            </div>
           </div>
         </div>
       )}

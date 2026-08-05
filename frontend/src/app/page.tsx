@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { Hero, TitleSection } from "@/features/shell";
+import { Hero, HeroImage, HeroImagePreloads } from "@/features/shell";
+
+const TitleSection = dynamic(() =>
+  import("@/features/shell/components/TitleSection").then((m) => ({
+    default: m.TitleSection,
+  })),
+);
 
 const StatsVideoSection = dynamic(() =>
   import("@/features/shell/components/StatsVideoSection").then((m) => ({
@@ -47,7 +53,11 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
-      <Hero />
+      <HeroImagePreloads />
+      <section className="relative flex min-h-[85vh] items-center overflow-hidden">
+        <HeroImage />
+        <Hero />
+      </section>
       <TitleSection />
       <StatsVideoSection />
       <MotivationPanels />
