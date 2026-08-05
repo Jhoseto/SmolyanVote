@@ -188,6 +188,9 @@ public class AuthController {
         }
 
         request.getSession(true).setAttribute(OAuth2AuthenticationSuccessHandler.WEB_OAUTH_SESSION_ATTR, Boolean.TRUE);
+        request.getSession(true).setAttribute(
+                OAuth2AuthenticationSuccessHandler.WEB_OAUTH_RETURN_ORIGIN,
+                frontendProperties.originForOAuth(request));
 
         Cookie cookie = new Cookie(OAuth2AuthenticationSuccessHandler.WEB_OAUTH_COOKIE, "true");
         cookie.setPath("/");

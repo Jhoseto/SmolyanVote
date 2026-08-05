@@ -46,6 +46,10 @@ public class FrontendProperties {
      */
     public String originForOAuth(HttpServletRequest request) {
         String configured = origin();
+        if (isCanonicalSiteOrigin(configured)) {
+            return configured;
+        }
+
         if (request == null) {
             return configured;
         }
@@ -65,6 +69,23 @@ public class FrontendProperties {
 
         String fromRequest = publicOriginFromHost(request, publicHost);
         return fromRequest != null ? fromRequest : configured;
+    }
+
+    static boolean isCanonicalSiteOrigin(String configuredOrigin) {
+        if (configuredOrigin == null || configuredOrigin.isBlank()) {
+            return false;
+        }
+        try {
+            URI uri = URI.create(configuredOrigin);
+            String host = uri.getHost();
+            if (host == null) {
+                return false;
+            }
+            String h = host.toLowerCase(Locale.ROOT);
+            return h.equals("smolyanvote.com") || h.equals("www.smolyanvote.com");
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     static String resolvePublicHost(HttpServletRequest request) {

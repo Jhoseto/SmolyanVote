@@ -38,6 +38,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     public static final String WEB_OAUTH_SESSION_ATTR = "WEB_OAUTH_REDIRECT";
     public static final String WEB_OAUTH_COOKIE = "WEB_OAUTH_REDIRECT";
+    /** Set at {@code /api/v1/auth/oauth/start} — survives provider round-trip on the same host. */
+    public static final String WEB_OAUTH_RETURN_ORIGIN = "WEB_OAUTH_RETURN_ORIGIN";
     public static final String MOBILE_OAUTH_COOKIE = "MOBILE_REDIRECT";
 
     private final JwtTokenService jwtTokenService;
@@ -57,6 +59,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     private String frontendUrl(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            Object stored = session.getAttribute(WEB_OAUTH_RETURN_ORIGIN);
+            if (stored instanceof String origin && !origin.isBlank()) {
+                session.removeAttribute(WEB_OAUTH_RETURN_ORIGIN);
+                return origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin;
+            }
+        }
         return frontendProperties.originForOAuth(request);
     }
 
@@ -97,6 +107,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             Authentication authentication) throws IOException, ServletException {
 
         boolean isMobile = hasCookie(request, MOBILE_OAUTH_COOKIE);
+        String webReturnOrigin = isMobile ? null : frontendUrl(request);
 
         if (isMobile) {
             clearCookie(response, MOBILE_OAUTH_COOKIE);
@@ -106,7 +117,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         if (!(authentication.getPrincipal() instanceof OAuth2User oauthUser)) {
             getRedirectStrategy().sendRedirect(request, response,
-                    frontendUrl(request) + "/oauth-callback?error=" + encode("oauth2_invalid_principal"));
+                    webReturnOrigin + "/oauth-callback?error=" + encode("oauth2_invalid_principal"));
             return;
         }
 
@@ -115,7 +126,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             log.warn("OAuth success but user not found for email={}", String.valueOf(oauthUser.getAttribute("email")));
             String target = isMobile
                     ? "svmessenger://oauth/callback?error=user_not_found"
-                    : frontendUrl(request) + "/oauth-callback?error=" + encode("user_not_found");
+                    : webReturnOrigin + "/oauth-callback?error=" + encode("user_not_found");
             getRedirectStrategy().sendRedirect(request, response, target);
             return;
         }
@@ -128,7 +139,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     : "Профилът ви е перманентно блокиран.";
             String target = isMobile
                     ? "svmessenger://oauth/callback?error=permanent_ban"
-                    : frontendUrl(request) + "/oauth-callback?error=permanent_ban&banReason=" + encode(reason);
+                    : webReturnOrigin + "/oauth-callback?error=permanent_ban&banReason=" + encode(reason);
             getRedirectStrategy().sendRedirect(request, response, target);
             return;
         }
@@ -140,7 +151,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         String redirectUrl = isMobile
                 ? "svmessenger://oauth/callback?accessToken=" + encodedAccess + "&refreshToken=" + encodedRefresh
-                : frontendUrl(request) + "/oauth-callback?accessToken=" + encodedAccess + "&refreshToken=" + encodedRefresh;
+                : webReturnOrigin + "/oauth-callback?accessToken=" + encodedAccess + "&refreshToken=" + encodedRefresh;
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }

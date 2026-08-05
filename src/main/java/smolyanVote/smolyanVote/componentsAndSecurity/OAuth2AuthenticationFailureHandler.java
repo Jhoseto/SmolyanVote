@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.componentsAndSecurity;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
@@ -35,15 +36,30 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
         clear.setPath("/");
         clear.setMaxAge(0);
         response.addCookie(clear);
+
+        String errorMessage = exception.getMessage();
+        String returnOrigin = resolveReturnOrigin(request);
+
         jakarta.servlet.http.HttpSession session = request.getSession(false);
         if (session != null) {
             session.removeAttribute(OAuth2AuthenticationSuccessHandler.WEB_OAUTH_SESSION_ATTR);
+            session.removeAttribute(OAuth2AuthenticationSuccessHandler.WEB_OAUTH_RETURN_ORIGIN);
         }
 
-        String errorMessage = exception.getMessage();
-        String redirectUrl = frontendProperties.originForOAuth(request)
-                + "/oauth-callback?error=" + encodeErrorMessage(errorMessage);
+        String redirectUrl = returnOrigin + "/oauth-callback?error=" + encodeErrorMessage(errorMessage);
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+    }
+
+    private String resolveReturnOrigin(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            Object stored = session.getAttribute(OAuth2AuthenticationSuccessHandler.WEB_OAUTH_RETURN_ORIGIN);
+            if (stored instanceof String origin && !origin.isBlank()) {
+                session.removeAttribute(OAuth2AuthenticationSuccessHandler.WEB_OAUTH_RETURN_ORIGIN);
+                return origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin;
+            }
+        }
+        return frontendProperties.originForOAuth(request);
     }
 
     private String encodeErrorMessage(String message) {

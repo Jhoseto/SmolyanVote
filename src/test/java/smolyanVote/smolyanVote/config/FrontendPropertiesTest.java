@@ -48,6 +48,20 @@ class FrontendPropertiesTest {
     }
 
     @Test
+    void originForOAuth_canonicalEnvIgnoresIpCallbackHost() {
+        FrontendProperties props = new FrontendProperties();
+        props.setUrl("https://smolyanvote.com");
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getHeader("X-Forwarded-Host")).thenReturn("161.35.69.206");
+        when(request.getHeader("X-Forwarded-Proto")).thenReturn("http");
+        when(request.getServerName()).thenReturn("161.35.69.206");
+        when(request.getScheme()).thenReturn("http");
+
+        assertEquals("https://smolyanvote.com", props.originForOAuth(request));
+    }
+
+    @Test
     void originForOAuth_emergencyIpLoginStaysOnIp() {
         FrontendProperties props = new FrontendProperties();
         props.setUrl("http://161.35.69.206");
