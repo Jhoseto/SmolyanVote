@@ -22,9 +22,9 @@ import smolyanVote.smolyanVote.config.websocket.WebSocketHandshakeInterceptor;
 /**
  * Unified WebSocket конфигурация за real-time комуникация
  * Управлява всички WebSocket endpoints в системата:
- * - SVMessenger (STOMP)
- * - Notifications (SockJS)
- * - Activity monitoring (SockJS)
+ * - SVMessenger (STOMP) — plain `/ws-svmessenger/ws` + SockJS legacy
+ * - Notifications — plain `/ws/notifications/ws` + SockJS legacy
+ * - Activity monitoring — plain `/ws/admin/activity/ws` + SockJS legacy
  */
 @Configuration
 @EnableWebSocket
@@ -59,12 +59,20 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
         this.adminActivityHandshakeHandler = adminActivityHandshakeHandler;
     }
 
-    // ========== SOCKJS HANDLERS (WebSocketConfigurer) ==========
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         String[] allowedOrigins = getAllowedOrigins();
 
-        // Admin activity wall — JWT handshake (?access_token=) + session Principal (V1)
+        // Plain WebSocket — Next.js web (no SockJS / no deprecated unload listeners)
+        registry.addHandler(activityWebSocketHandler, "/ws/admin/activity/ws")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .setHandshakeHandler(adminActivityHandshakeHandler);
+
+        registry.addHandler(notificationWebSocketHandler, "/ws/notifications/ws")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .setHandshakeHandler(notificationHandshakeHandler);
+
+        // SockJS — SVMessenger mobile + legacy clients
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity")
                 .setAllowedOriginPatterns(allowedOrigins)
                 .setHandshakeHandler(adminActivityHandshakeHandler)
@@ -133,12 +141,15 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
             };
         }
 
-        // РЕШЕНИЕ: ДВА endpoint-а - един за SockJS (web) и един за plain WebSocket (mobile)
-        // Mobile clients използват plain WebSocket за да се избегнат проблеми с SockJS headers
+        // Plain WebSocket STOMP — Next.js web frontend; SockJS — SVMessenger mobile app
         log.info("WebSocket endpoints configured for profile: {}", activeProfile);
 
-        // Universal SockJS endpoint за всички clients
-        // SockJS автоматично предоставя WebSocket fallbacks и работи с React Native
+        // Plain WebSocket STOMP — Next.js web frontend
+        registry.addEndpoint("/ws-svmessenger/ws")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .addInterceptors(webSocketHandshakeInterceptor);
+
+        // SockJS STOMP — SVMessenger mobile + legacy clients
         registry.addEndpoint("/ws-svmessenger")
                 .setAllowedOriginPatterns(allowedOrigins)
                 .addInterceptors(webSocketHandshakeInterceptor)

@@ -4,15 +4,14 @@ import {
   type IStompSocket,
   type StompSubscription,
 } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
-import { resolveWsUrl } from "@/config/env";
+import { resolveNativeWsUrl } from "@/config/env";
 import { tokenStore } from "@/lib/api/tokenStore";
 
 /**
- * STOMP-over-SockJS client for `/ws-svmessenger/**` (chat, typing, receipts).
+ * STOMP-over-native-WebSocket client for `/ws-svmessenger/ws/**` (chat, typing, receipts).
  * Vote writes NEVER go through here — always REST (MODERN_FRONTEND_PLAN Tier 3).
  *
- * Resilience ladder (Фаза 10): SockJS transport → STOMP reconnect with
+ * Resilience ladder (Фаза 10): native WebSocket → STOMP reconnect with
  * exponential backoff → consumers poll REST while disconnected.
  */
 
@@ -22,6 +21,7 @@ export type ConnectionState =
   | "reconnecting"
   | "disconnected";
 
+const STOMP_WS_PATH = "/ws-svmessenger/ws";
 const BASE_RECONNECT_MS = 1000;
 const MAX_RECONNECT_MS = 30_000;
 
@@ -44,14 +44,13 @@ function nextReconnectDelay(): number {
 
 function createClient(): Client {
   const instance = new Client({
-    webSocketFactory: () => new SockJS(resolveWsUrl()) as unknown as IStompSocket,
+    webSocketFactory: () => new WebSocket(resolveNativeWsUrl(STOMP_WS_PATH)) as IStompSocket,
     beforeConnect: (c) => {
       const headers: Record<string, string> = {};
       const access = tokenStore.getAccess();
       if (access) headers.Authorization = `Bearer ${access}`;
       c.connectHeaders = headers;
     },
-    // Library uses this as the delay between attempts; we bump it on each failure.
     reconnectDelay: BASE_RECONNECT_MS,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,

@@ -94,7 +94,7 @@ function MenuRow({
   );
 }
 
-export function MonitorNavMenuPanel({
+function MonitorNavMenuPanel({
   onNavigate,
   layout = "dropdown",
 }: {
@@ -151,7 +151,6 @@ export function MonitorNavMenu({
   onNavigate,
   className,
   layout = "dropdown",
-  drawerPart = "combined",
   open: controlledOpen,
   onOpenChange,
 }: {
@@ -159,7 +158,6 @@ export function MonitorNavMenu({
   onNavigate?: () => void;
   className?: string;
   layout?: "dropdown" | "drawer";
-  drawerPart?: "combined" | "trigger" | "panel";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
@@ -186,16 +184,11 @@ export function MonitorNavMenu({
     };
   }, [layout, setOpen]);
 
-  if (layout === "drawer" && drawerPart === "panel") {
-    return <MonitorNavMenuPanel onNavigate={onNavigate} layout="drawer" />;
-  }
-
   const panelContent = <MonitorNavMenuPanel onNavigate={onNavigate} layout={layout} />;
 
   return (
     <div ref={ref} className={cn(layout === "dropdown" && "relative", className)}>
-      {(layout === "dropdown" || drawerPart !== "panel") && (
-        <button
+      <button
           type="button"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
@@ -213,12 +206,11 @@ export function MonitorNavMenu({
               open && "rotate-180",
               layout === "drawer" && "ml-auto text-xs",
             )}
-          />
-        </button>
-      )}
+        />
+      </button>
 
-      {layout === "drawer" && drawerPart === "combined" && open ? (
-        <div className="mt-1 overflow-hidden rounded-[var(--radius-md)] border border-border-default/50 bg-white shadow-sm">
+      {layout === "drawer" && open ? (
+        <div className="mb-2 mt-1 rounded-[var(--radius-md)] border border-border-default/50 bg-primary-50/30 shadow-sm">
           {panelContent}
         </div>
       ) : null}

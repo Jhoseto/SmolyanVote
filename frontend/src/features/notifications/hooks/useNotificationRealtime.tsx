@@ -19,7 +19,7 @@ const UNREAD_KEY = ["notifications", "unread-count"] as const;
 const MAX_RECENT = 10;
 
 /**
- * Wires the SockJS push channel into the TanStack Query cache — no reload,
+ * Wires the WebSocket push channel into the TanStack Query cache — no reload,
  * no full refetch. Mount once (in `NotificationBell`) for authenticated
  * users. Shows a 4s toast on new notifications (click navigates client-side).
  */

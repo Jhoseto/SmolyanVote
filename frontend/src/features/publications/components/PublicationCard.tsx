@@ -213,13 +213,13 @@ export function PublicationCard({
           </span>
         </div>
 
-        <div className="mt-2 grid grid-cols-2 gap-0.5 border-t border-border-default/50 px-1 py-1 sm:grid-cols-4">
+        <div className="mt-2 grid grid-cols-4 gap-0.5 border-t border-border-default/50 px-1 py-1">
           <button
             type="button"
             onClick={handleLike}
             disabled={isLiking}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-2 py-2.5 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50",
+              "flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
               publication.isLiked ? "text-primary" : "text-[color:var(--color-text-secondary)]",
             )}
           >
@@ -231,7 +231,7 @@ export function PublicationCard({
             onClick={handleDislike}
             disabled={isDisliking}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-2 py-2.5 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-50",
+              "flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
               publication.isDisliked
                 ? "text-[color:var(--color-error)]"
                 : "text-[color:var(--color-text-secondary)]",
@@ -245,7 +245,7 @@ export function PublicationCard({
           <button
             type="button"
             onClick={() => onOpenDetail?.(publication.id, { focusComments: true })}
-            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-2 py-2.5 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary"
+            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
           >
             <i className="bi bi-chat" />
             <span className="hidden sm:inline">Коментирай</span>
@@ -254,7 +254,7 @@ export function PublicationCard({
             title={publication.title}
             url={shareUrl}
             onShared={() => recordShare(publication.id)}
-            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-2 py-2.5 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary"
+            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
           >
             <i className="bi bi-share" />
             <span className="hidden sm:inline">Сподели</span>

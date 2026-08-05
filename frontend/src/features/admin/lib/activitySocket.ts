@@ -1,5 +1,4 @@
-import SockJS from "sockjs-client";
-import { resolveWsUrl } from "@/config/env";
+import { resolveNativeWsUrl } from "@/config/env";
 import { tokenStore } from "@/lib/api/tokenStore";
 import type { ActivityItem, ActivityStats } from "../types";
 
@@ -7,6 +6,8 @@ export type ActivitySocketStatus = "idle" | "connecting" | "open" | "reconnectin
 
 type Listener = (msg: { type: string; data?: unknown; activities?: ActivityItem[]; stats?: ActivityStats }) => void;
 type StatusListener = (s: ActivitySocketStatus) => void;
+
+const ADMIN_ACTIVITY_WS_PATH = "/ws/admin/activity/ws";
 
 let socket: WebSocket | null = null;
 let status: ActivitySocketStatus = "idle";
@@ -24,7 +25,7 @@ function setStatus(next: ActivitySocketStatus) {
 }
 
 function buildUrl() {
-  const base = resolveWsUrl("/ws/admin/activity");
+  const base = resolveNativeWsUrl(ADMIN_ACTIVITY_WS_PATH);
   const token = tokenStore.getAccess();
   return token ? `${base}?access_token=${encodeURIComponent(token)}` : base;
 }
@@ -40,7 +41,7 @@ function scheduleReconnect() {
 function connect() {
   if (socket || manuallyDisconnected || !enabled || typeof window === "undefined") return;
   setStatus(attempt > 0 ? "reconnecting" : "connecting");
-  const instance = new SockJS(buildUrl()) as unknown as WebSocket;
+  const instance = new WebSocket(buildUrl());
   socket = instance;
 
   instance.onopen = () => {
@@ -69,7 +70,6 @@ function connect() {
       } else if (payload && typeof payload === "object") {
         const p = payload as Record<string, unknown>;
         if (Array.isArray(p.activities)) msg.activities = p.activities as ActivityItem[];
-        // stats / stats_update send the stats map as `data`
         if (
           raw.type === "statistics" ||
           raw.type === "stats_update" ||

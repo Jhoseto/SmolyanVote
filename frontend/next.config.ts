@@ -6,6 +6,17 @@ const API_ORIGIN =
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ??
   "http://localhost:2662";
 
+const SECURITY_HEADERS = [
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(self), microphone=(self), geolocation=(self), interest-cohort=()",
+  },
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   images: {
@@ -15,6 +26,10 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: SECURITY_HEADERS,
+      },
       {
         source: "/images/:path*",
         headers: [

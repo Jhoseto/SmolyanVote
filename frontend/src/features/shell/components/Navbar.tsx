@@ -136,47 +136,54 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                 </button>
               </>
             )}
-            {isHydrated ? notificationSlot : <div className="h-10 w-10" aria-hidden />}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+              {isHydrated ? notificationSlot : null}
+            </div>
           </div>
 
-          <button
-            type="button"
-            aria-label={t.nav.menu}
-            aria-expanded={mobileOpen}
-            onClick={() => {
-              hapticTap();
-              setMobileOpen((v) => {
-                if (v) setMobileSubmenu(null);
-                return !v;
-              });
-            }}
-            className="flex h-11 w-11 flex-col items-center justify-center gap-1.5 xl:hidden"
-          >
-            <span
-              className={cn(
-                "block h-0.5 w-6 rounded-full bg-[color:var(--color-text-nav)] transition-all",
-                mobileOpen && "translate-y-2 rotate-45",
-              )}
-            />
-            <span
-              className={cn(
-                "block h-0.5 w-6 rounded-full bg-[color:var(--color-text-nav)] transition-all",
-                mobileOpen && "opacity-0",
-              )}
-            />
-            <span
-              className={cn(
-                "block h-0.5 w-6 rounded-full bg-[color:var(--color-text-nav)] transition-all",
-                mobileOpen && "-translate-y-2 -rotate-45",
-              )}
-            />
-          </button>
+          <div className="flex items-center gap-0.5 xl:hidden">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+              {isHydrated ? notificationSlot : null}
+            </div>
+            <button
+              type="button"
+              aria-label={t.nav.menu}
+              aria-expanded={mobileOpen}
+              onClick={() => {
+                hapticTap();
+                setMobileOpen((v) => {
+                  if (v) setMobileSubmenu(null);
+                  return !v;
+                });
+              }}
+              className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5"
+            >
+              <span
+                className={cn(
+                  "block h-0.5 w-6 rounded-full bg-[color:var(--color-text-nav)] transition-all",
+                  mobileOpen && "translate-y-2 rotate-45",
+                )}
+              />
+              <span
+                className={cn(
+                  "block h-0.5 w-6 rounded-full bg-[color:var(--color-text-nav)] transition-all",
+                  mobileOpen && "opacity-0",
+                )}
+              />
+              <span
+                className={cn(
+                  "block h-0.5 w-6 rounded-full bg-[color:var(--color-text-nav)] transition-all",
+                  mobileOpen && "-translate-y-2 -rotate-45",
+                )}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="flex max-h-[calc(100dvh-var(--navbar-height))] flex-col border-t border-black/[0.06] bg-white/95 backdrop-blur-xl xl:hidden">
-          <div className="shrink-0 px-4 py-3">
+        <div className="max-h-[calc(100dvh-var(--navbar-height))] overflow-y-auto overscroll-contain border-t border-black/[0.06] bg-white/95 backdrop-blur-xl xl:hidden">
+          <div className="px-4 py-3">
             <div className="flex flex-col gap-1">
               {NAV_ITEMS.map((item) => {
                 if (item.key === "vote") {
@@ -184,10 +191,10 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                     <VoteNavMenu
                       key="vote"
                       layout="drawer"
-                      drawerPart="trigger"
                       label={t.nav.vote}
                       open={mobileSubmenu === "vote"}
                       onOpenChange={(next) => setMobileSubmenu(next ? "vote" : null)}
+                      onNavigate={closeMobileNav}
                       className="w-full"
                     />
                   );
@@ -197,10 +204,10 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                     <MonitorNavMenu
                       key="monitor"
                       layout="drawer"
-                      drawerPart="trigger"
                       label={t.nav.monitor}
                       open={mobileSubmenu === "monitor"}
                       onOpenChange={(next) => setMobileSubmenu(next ? "monitor" : null)}
+                      onNavigate={closeMobileNav}
                       className="w-full"
                     />
                   );
@@ -231,50 +238,17 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                 <div className="mt-2 border-t border-border-default/60 pt-2">
                   <UserMenu
                     layout="drawer"
-                    drawerPart="trigger"
                     logoutLabel={t.nav.logout}
                     open={mobileSubmenu === "profile"}
                     onOpenChange={(next) => setMobileSubmenu(next ? "profile" : null)}
+                    onNavigate={closeMobileNav}
                     className="w-full"
                   />
                 </div>
               )}
             </div>
-          </div>
 
-          {mobileSubmenu && (
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-primary/15 bg-primary-50/25 px-4 py-3 shadow-[inset_0_1px_0_rgba(25,134,28,0.08)]">
-              {mobileSubmenu === "vote" && (
-                <VoteNavMenu
-                  layout="drawer"
-                  drawerPart="panel"
-                  label={t.nav.vote}
-                  onNavigate={closeMobileNav}
-                />
-              )}
-              {mobileSubmenu === "monitor" && (
-                <MonitorNavMenu
-                  layout="drawer"
-                  drawerPart="panel"
-                  label={t.nav.monitor}
-                  onNavigate={closeMobileNav}
-                />
-              )}
-              {mobileSubmenu === "profile" && (
-                <div className="overflow-hidden rounded-[var(--radius-md)] border border-border-default/60 bg-white py-2 shadow-sm">
-                  <UserMenu
-                    layout="drawer"
-                    drawerPart="panel"
-                    logoutLabel={t.nav.logout}
-                    onNavigate={closeMobileNav}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="mt-auto shrink-0 border-t border-border-default/60 px-4 py-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-3 flex flex-col gap-3 border-t border-border-default/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 {!isHydrated ? (
                   <div className="h-10 w-28" aria-hidden />
@@ -296,7 +270,6 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                     </button>
                   </>
                 ) : null}
-                {isHydrated ? notificationSlot : null}
               </div>
               <LanguageSwitcher label={t.nav.languages} />
             </div>

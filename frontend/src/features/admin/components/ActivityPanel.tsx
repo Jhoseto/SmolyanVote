@@ -272,7 +272,7 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
       {view === "settings" && (
         <div className="rounded-[var(--radius-lg)] border border-border-default/60 p-4">
           <p className="text-sm text-[color:var(--color-text-secondary)]">
-            SockJS endpoint: <code>/ws/admin/activity</code> (JWT query token). Cleanup изтрива записи
+            WebSocket endpoint: <code>/ws/admin/activity/ws</code> (JWT query token). Cleanup изтрива записи
             по-стари от retention.
           </p>
           <button

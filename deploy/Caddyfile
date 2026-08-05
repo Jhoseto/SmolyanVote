@@ -10,6 +10,14 @@
 (app) {
 	encode gzip zstd
 
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Opener-Policy "same-origin-allow-popups"
+		Permissions-Policy "camera=(self), microphone=(self), geolocation=(self), interest-cohort=()"
+	}
+
 	handle /api/* {
 		reverse_proxy backend:2662
 	}

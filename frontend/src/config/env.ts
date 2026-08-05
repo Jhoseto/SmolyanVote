@@ -15,8 +15,6 @@ import { z } from "zod";
 const envSchema = z.object({
   /** Empty = same-origin (`/api/...` via Next rewrite). */
   NEXT_PUBLIC_API_URL: z.string().default(""),
-  /** Relative SockJS path or absolute URL. */
-  NEXT_PUBLIC_WS_URL: z.string().default("/ws-svmessenger"),
   /** Spring origin for OAuth start only (and rewrite fallback). */
   NEXT_PUBLIC_BACKEND_ORIGIN: z
     .string()
@@ -30,7 +28,6 @@ const envSchema = z.object({
 
 const parsed = envSchema.safeParse({
   NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "",
-  NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
   NEXT_PUBLIC_BACKEND_ORIGIN: process.env.NEXT_PUBLIC_BACKEND_ORIGIN,
   NEXT_PUBLIC_LIVEKIT_URL: process.env.NEXT_PUBLIC_LIVEKIT_URL,
 });
@@ -97,13 +94,29 @@ export function resolveOAuthStartUrl(provider: "google" | "facebook"): string {
   return `${origin}/api/v1/auth/oauth/start?provider=${provider}`;
 }
 
-/** SockJS / WS endpoint (relative same-origin by default). */
-export function resolveWsUrl(path?: string): string {
-  if (path) {
-    const normalized = path.startsWith("/") ? path : `/${path}`;
-    const publicBase = env.NEXT_PUBLIC_API_URL.trim();
-    if (publicBase) return `${stripTrailingSlash(publicBase)}${normalized}`;
-    return normalized;
+/** Browser-native WebSocket URL (ws/wss) for plain Spring endpoints (no SockJS). */
+export function resolveNativeWsUrl(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const publicBase = env.NEXT_PUBLIC_API_URL.trim();
+
+  if (publicBase) {
+    const wsBase = stripTrailingSlash(publicBase)
+      .replace(/^http:/i, "ws:")
+      .replace(/^https:/i, "wss:");
+    return `${wsBase}${normalized}`;
   }
-  return env.NEXT_PUBLIC_WS_URL.trim() || "/ws-svmessenger";
+
+  if (typeof window === "undefined") {
+    const internal =
+      process.env.API_INTERNAL_URL?.trim() ||
+      env.NEXT_PUBLIC_BACKEND_ORIGIN ||
+      "http://localhost:2662";
+    const wsBase = stripTrailingSlash(internal)
+      .replace(/^http:/i, "ws:")
+      .replace(/^https:/i, "wss:");
+    return `${wsBase}${normalized}`;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}${normalized}`;
 }

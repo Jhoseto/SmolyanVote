@@ -1,14 +1,11 @@
-import SockJS from "sockjs-client";
-import { resolveWsUrl } from "@/config/env";
+import { resolveNativeWsUrl } from "@/config/env";
 import { tokenStore } from "@/lib/api/tokenStore";
 import type { NotificationDto } from "../types";
 
 /**
- * Raw SockJS client for `/ws/notifications` (plain JSON frames, NOT STOMP —
- * unlike `stompClient.ts` which talks to `/ws-svmessenger`). Exponential
- * backoff reconnect; after `MAX_ATTEMPTS_BEFORE_POLL_FALLBACK` failed
- * attempts the status flips to `"failed"` so `useUnreadCount` can fall back
- * to REST polling (MODERN_FRONTEND_PLAN §Фаза 1 notifications).
+ * Native WebSocket client for `/ws/notifications/ws` (plain JSON frames, NOT STOMP).
+ * Exponential backoff reconnect; after `MAX_ATTEMPTS_BEFORE_POLL_FALLBACK` failed
+ * attempts the status flips to `"failed"` so `useUnreadCount` can fall back to REST polling.
  */
 export type SocketStatus = "idle" | "connecting" | "open" | "reconnecting" | "failed";
 
@@ -16,6 +13,7 @@ type MessageListener = (notification: NotificationDto) => void;
 type GlobalActivityListener = (toast: { kind: string; title: string; message: string; actionUrl?: string; icon?: string }) => void;
 type StatusListener = (status: SocketStatus) => void;
 
+const NOTIFICATIONS_WS_PATH = "/ws/notifications/ws";
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30_000;
 const MAX_ATTEMPTS_BEFORE_POLL_FALLBACK = 5;
@@ -36,7 +34,7 @@ function setStatus(next: SocketStatus): void {
 }
 
 function buildUrl(): string {
-  const base = resolveWsUrl("/ws/notifications");
+  const base = resolveNativeWsUrl(NOTIFICATIONS_WS_PATH);
   const token = tokenStore.getAccess();
   return token ? `${base}?access_token=${encodeURIComponent(token)}` : base;
 }
@@ -53,8 +51,7 @@ function connect(): void {
   if (socket || manuallyDisconnected || typeof window === "undefined") return;
   setStatus(attempt > 0 ? "reconnecting" : "connecting");
 
-  // SockJS types the constructor loosely; cast the WebSocket-shaped result.
-  const instance = new SockJS(buildUrl()) as unknown as WebSocket;
+  const instance = new WebSocket(buildUrl());
   socket = instance;
 
   instance.onopen = () => {

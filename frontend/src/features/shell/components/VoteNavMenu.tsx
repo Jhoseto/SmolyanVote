@@ -110,8 +110,8 @@ function MenuRow({
   );
 }
 
-/** Vote mega-menu — create (auth-gated) + browse, glass style matching the shell. */
-export function VoteNavMenuPanel({
+/** Vote mega-menu panel content (create + browse). */
+function VoteNavMenuPanel({
   onNavigate,
   layout = "dropdown",
 }: {
@@ -194,16 +194,13 @@ export function VoteNavMenu({
   onNavigate,
   className,
   layout = "dropdown",
-  drawerPart = "combined",
   open: controlledOpen,
   onOpenChange,
 }: {
   label: string;
   onNavigate?: () => void;
   className?: string;
-  /** `drawer` = mobile hamburger; use `drawerPart` to split trigger vs panel. */
   layout?: "dropdown" | "drawer";
-  drawerPart?: "combined" | "trigger" | "panel";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
@@ -228,16 +225,11 @@ export function VoteNavMenu({
     };
   }, [layout, setOpen]);
 
-  if (layout === "drawer" && drawerPart === "panel") {
-    return <VoteNavMenuPanel onNavigate={onNavigate} layout="drawer" />;
-  }
-
   const panelContent = <VoteNavMenuPanel onNavigate={onNavigate} layout={layout} />;
 
   return (
     <div ref={ref} className={cn(layout === "dropdown" && "relative", className)}>
-      {(layout === "dropdown" || drawerPart !== "panel") && (
-        <button
+      <button
           type="button"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
@@ -261,12 +253,11 @@ export function VoteNavMenu({
               open && "rotate-180",
               layout === "drawer" && "ml-auto text-xs",
             )}
-          />
-        </button>
-      )}
+        />
+      </button>
 
-      {layout === "drawer" && drawerPart === "combined" && open ? (
-        <div className="mt-1 overflow-hidden rounded-[var(--radius-md)] border border-border-default/50 bg-white shadow-sm">
+      {layout === "drawer" && open ? (
+        <div className="mb-2 mt-1 rounded-[var(--radius-md)] border border-border-default/50 bg-primary-50/30 shadow-sm">
           {panelContent}
         </div>
       ) : null}

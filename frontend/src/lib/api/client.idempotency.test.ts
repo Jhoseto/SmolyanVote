@@ -3,10 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/config/env", () => ({
   env: {
     NEXT_PUBLIC_API_URL: "",
-    NEXT_PUBLIC_WS_URL: "/ws-svmessenger",
     NEXT_PUBLIC_BACKEND_ORIGIN: "http://localhost:2662",
     NEXT_PUBLIC_LIVEKIT_URL: "wss://example.livekit.cloud",
   },
+  resolveApiUrl: (path: string) => path,
+  resolveNativeWsUrl: (path: string) => `ws://localhost:2662${path}`,
 }));
 
 vi.mock("./tokenStore", () => ({

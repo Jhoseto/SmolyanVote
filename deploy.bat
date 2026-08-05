@@ -261,7 +261,6 @@ rem (must NOT be http://backend:2662 — browsers cannot resolve that hostname).
 set "API_INTERNAL_URL=http://backend:2662"
 if not defined NEXT_PUBLIC_BACKEND_ORIGIN set "NEXT_PUBLIC_BACKEND_ORIGIN=https://smolyanvote.com"
 set "NEXT_PUBLIC_API_URL="
-set "NEXT_PUBLIC_WS_URL=/ws-svmessenger"
 if not defined NODE_MAX_OLD_SPACE_SIZE set "NODE_MAX_OLD_SPACE_SIZE=4096"
 set "NODE_OPTIONS=--max-old-space-size=%NODE_MAX_OLD_SPACE_SIZE%"
 set "NEXT_TELEMETRY_DISABLED=1"

@@ -12,7 +12,7 @@ export function NotificationDropdown({ onClose }: { onClose: () => void }) {
   const hasUnread = data?.some((n) => !n.read) ?? false;
 
   return (
-    <div className="absolute right-0 top-[calc(100%+10px)] z-50 max-h-[480px] w-[360px] overflow-hidden rounded-[var(--radius-md)] border border-border-default/60 bg-white shadow-[var(--shadow-dropdown)]">
+    <div className="absolute right-0 top-[calc(100%+10px)] z-50 max-h-[min(480px,calc(100dvh-var(--navbar-height)-1rem))] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-[var(--radius-md)] border border-border-default/60 bg-white shadow-[var(--shadow-dropdown)]">
       <div className="flex items-center justify-between border-b border-border-default/60 px-4 py-3">
         <h3 className="text-sm font-bold text-[color:var(--color-text-heading)]">Известия</h3>
         {hasUnread && (

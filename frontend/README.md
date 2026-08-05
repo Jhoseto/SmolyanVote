@@ -1,6 +1,6 @@
 # SmolyanVote — Next.js frontend
 
-Modern UI for [SmolyanVote](https://smolyanvote.com) (React 19 + Next.js + Tailwind). Talks to the existing Spring Boot backend over JWT REST + SockJS/STOMP.
+Modern UI for [SmolyanVote](https://smolyanvote.com) (React 19 + Next.js + Tailwind). Talks to the existing Spring Boot backend over JWT REST + native WebSocket (STOMP/notifications).
 
 Roadmap: [`../MODERN_FRONTEND_PLAN.md`](../MODERN_FRONTEND_PLAN.md)  
 Legacy UI isolation (Next-only testing): [`../docs/CUTOVER.md`](../docs/CUTOVER.md)
@@ -20,7 +20,7 @@ npm run dev                        # http://localhost:3000
 Required env (see `.env.local.example`):
 
 - `NEXT_PUBLIC_API_URL` — default `http://localhost:2662`
-- `NEXT_PUBLIC_WS_URL` — messenger STOMP SockJS
+- `NEXT_PUBLIC_BACKEND_ORIGIN` — Spring origin for OAuth start (prod: `https://smolyanvote.com`)
 - `NEXT_PUBLIC_LIVEKIT_URL` — calls
 
 ## Scripts
