@@ -11,7 +11,6 @@ import { useMessengerPrefsStore } from "../store/messengerPrefsStore";
 import { useIsDesktopMessenger } from "../lib/isDesktopMessenger";
 import { MessengerFab } from "./MessengerFab";
 import { MessengerPanel } from "./MessengerPanel";
-import { DownloadModal } from "./DownloadModal";
 import { FloatingChatWindow } from "./FloatingChatWindow";
 import { MessengerDock } from "./MessengerDock";
 import { CommandPalette } from "./CommandPalette";
@@ -32,7 +31,6 @@ export function MessengerRoot() {
   usePublishE2EKey(Boolean(user), user?.id);
 
   const activeChats = useMessengerUiStore((s) => s.activeChats);
-  const setDownloadModalOpen = useMessengerUiStore((s) => s.setDownloadModalOpen);
   const reflowWindows = useMessengerUiStore((s) => s.reflowWindows);
   const density = useMessengerPrefsStore((s) => s.density);
   const isDesktop = useIsDesktopMessenger();
@@ -44,14 +42,6 @@ export function MessengerRoot() {
     setCallSignalHandler(call.handleIncomingSignal);
     return () => setCallSignalHandler(null);
   }, [call.handleIncomingSignal]);
-
-  useEffect(() => {
-    function onOpenDownload() {
-      setDownloadModalOpen(true);
-    }
-    window.addEventListener("sv:open-download-modal", onOpenDownload);
-    return () => window.removeEventListener("sv:open-download-modal", onOpenDownload);
-  }, [setDownloadModalOpen]);
 
   useEffect(() => {
     let frame = 0;
@@ -71,7 +61,6 @@ export function MessengerRoot() {
       <MessengerFab />
       <MessengerPanel />
       <ConnectionBanner />
-      <DownloadModal />
       <MessengerDock />
       <QuickReplyToast />
       {isDesktop && <CommandPalette />}

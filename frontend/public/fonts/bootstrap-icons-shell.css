@@ -15,6 +15,7 @@
 .bi-check2-square::before { content: "\f271"; }
 .bi-chevron-down::before { content: "\f282"; }
 .bi-diagram-3::before { content: "\f2ee"; }
+.bi-download::before { content: "\f30a"; }
 .bi-envelope::before { content: "\f32f"; }
 .bi-exclamation-diamond::before { content: "\f335"; }
 .bi-eye::before { content: "\f341"; }

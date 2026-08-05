@@ -55,6 +55,8 @@ const ICONS = new Set([
   "arrow-up",
   "calendar2-check",
   "x-lg",
+  "download",
+  "shield-lock",
 ]);
 
 fs.mkdirSync(OUT, { recursive: true });

@@ -19,6 +19,12 @@ const MessengerRoot = dynamic(
   { ssr: false },
 );
 
+/** Eager — promo CTA / FAB must open download UI without waiting for DeferredHeavyShell. */
+const DownloadModal = dynamic(
+  () => import("@/features/messenger/components/DownloadModal").then((m) => m.DownloadModal),
+  { ssr: false },
+);
+
 const GlobalActivityRoot = dynamic(
   () =>
     import("@/features/notifications/components/GlobalActivityRoot").then(
@@ -80,6 +86,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <CookieConsentRoot />
           <BackToTop />
           <HeartbeatBeacon />
+          <DownloadModal />
           <DeferredHeavyShell />
         </AuthProvider>
       </QueryProvider>
