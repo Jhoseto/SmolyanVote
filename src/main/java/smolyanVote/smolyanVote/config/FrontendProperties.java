@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
 import java.util.Locale;
 import java.util.Set;
 
@@ -12,9 +13,10 @@ import java.util.Set;
 @ConfigurationProperties(prefix = "smolyanvote.frontend")
 public class FrontendProperties {
 
-    private static final Set<String> CANONICAL_HOSTS = Set.of(
-            "smolyanvote.com",
-            "www.smolyanvote.com");
+    private static final Set<String> LOCAL_DEV_HOSTS = Set.of(
+            "localhost",
+            "127.0.0.1",
+            "[::1]");
 
     /** e.g. http://localhost:3000 or https://smolyanvote.com */
     private String url = "http://localhost:3000";
@@ -33,41 +35,98 @@ public class FrontendProperties {
     }
 
     /**
-     * OAuth post-login redirect target. Prefers the public host the user used to
-     * start login (via Caddy {@code X-Forwarded-*} headers) so a stale
-     * {@code SMOLYANVOTE_FRONTEND_URL=http://161.35.69.206} does not send users
-     * to the raw IP after Google/Facebook auth on smolyanvote.com.
+     * OAuth post-login redirect target.
+     * <ul>
+     *   <li><b>Local dev</b> — always {@link #origin()} ({@code http://localhost:3000}) because
+     *       the OAuth callback hits Spring on {@code :2662}, not Next on {@code :3000}.</li>
+     *   <li><b>Production</b> — when the browser used {@code smolyanvote.com} but
+     *       {@code SMOLYANVOTE_FRONTEND_URL} still points at the Droplet IP, trust the public
+     *       host from Caddy ({@code X-Forwarded-*}) so users land back on the domain.</li>
+     * </ul>
      */
     public String originForOAuth(HttpServletRequest request) {
-        String fromRequest = publicOriginFromRequest(request);
-        if (fromRequest != null) {
-            return fromRequest;
+        String configured = origin();
+        if (request == null) {
+            return configured;
         }
-        return origin();
+
+        String publicHost = resolvePublicHost(request);
+        if (publicHost == null) {
+            return configured;
+        }
+
+        if (LOCAL_DEV_HOSTS.contains(publicHost.toLowerCase(Locale.ROOT))) {
+            return configured;
+        }
+
+        if (originHostMatches(publicHost, configured)) {
+            return configured;
+        }
+
+        String fromRequest = publicOriginFromHost(request, publicHost);
+        return fromRequest != null ? fromRequest : configured;
     }
 
-    static String publicOriginFromRequest(HttpServletRequest request) {
-        if (request == null) {
-            return null;
-        }
-
+    static String resolvePublicHost(HttpServletRequest request) {
         String host = firstHeaderValue(request, "X-Forwarded-Host");
         if (host == null || host.isBlank()) {
             host = request.getServerName();
         } else {
             host = host.split(",")[0].trim();
         }
-        host = stripPort(host);
+        return stripPort(host);
+    }
+
+    static boolean originHostMatches(String publicHost, String configuredOrigin) {
+        if (publicHost == null || publicHost.isBlank() || configuredOrigin == null) {
+            return false;
+        }
+        try {
+            URI uri = URI.create(configuredOrigin);
+            String configuredHost = uri.getHost();
+            if (configuredHost == null) {
+                return false;
+            }
+            String pub = publicHost.toLowerCase(Locale.ROOT);
+            String cfg = configuredHost.toLowerCase(Locale.ROOT);
+            if (pub.equals(cfg)) {
+                return true;
+            }
+            // www.smolyanvote.com and smolyanvote.com are the same site
+            return (pub.equals("www.smolyanvote.com") && cfg.equals("smolyanvote.com"))
+                    || (pub.equals("smolyanvote.com") && cfg.equals("www.smolyanvote.com"));
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    static String publicOriginFromHost(HttpServletRequest request, String host) {
         if (host == null || host.isBlank()) {
             return null;
         }
 
         String hostLower = host.toLowerCase(Locale.ROOT);
-        if (CANONICAL_HOSTS.contains(hostLower)) {
+        if ("www.smolyanvote.com".equals(hostLower)) {
+            host = "smolyanvote.com";
+            hostLower = "smolyanvote.com";
+        }
+
+        if ("smolyanvote.com".equals(hostLower)) {
             return "https://smolyanvote.com";
         }
 
         if (hostLower.endsWith(".sslip.io")) {
+            String proto = firstHeaderValue(request, "X-Forwarded-Proto");
+            if (proto == null || proto.isBlank()) {
+                proto = request.getScheme();
+            } else {
+                proto = proto.split(",")[0].trim();
+            }
+            return proto.toLowerCase(Locale.ROOT) + "://" + host;
+        }
+
+        // Raw IP or other emergency host — mirror scheme from the incoming request
+        if (hostLower.chars().allMatch(ch -> Character.isDigit(ch) || ch == '.')) {
             String proto = firstHeaderValue(request, "X-Forwarded-Proto");
             if (proto == null || proto.isBlank()) {
                 proto = request.getScheme();

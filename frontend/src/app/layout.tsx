@@ -7,6 +7,7 @@ import { ShellNavbar } from "./ShellNavbar";
 import { NotificationBell } from "@/features/notifications";
 import { CookiePreferencesLink } from "@/features/cookie-consent";
 import { NewsletterSubscribeButton } from "@/features/newsletter";
+import { DeferredStylesheet } from "@/shared/ui/DeferredStylesheet";
 import { getShellMessages, resolveLanguageFromGoogtransCookie } from "@/lib/i18n/locales";
 
 const SITE_URL = "https://smolyanvote.com";
@@ -204,7 +205,7 @@ export default async function RootLayout({
         />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap&subset=cyrillic,latin"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap&subset=cyrillic,latin"
           precedence="default"
         />
         <link
@@ -212,11 +213,7 @@ export default async function RootLayout({
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
           precedence="default"
         />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css"
-          precedence="default"
-        />
+        <DeferredStylesheet href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css" />
 
         <AppProviders>
           <a

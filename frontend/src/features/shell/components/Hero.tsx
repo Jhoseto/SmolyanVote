@@ -31,7 +31,8 @@ export function Hero() {
         alt="Смолян"
         fill
         priority
-        sizes="100vw"
+        quality={85}
+        sizes="(max-width: 768px) 100vw, (max-width: 1536px) 100vw, 1920px"
         className="object-cover"
         style={{ objectPosition: "center top" }}
       />

@@ -1,9 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { ParticlesBackground, Container } from "@/shared/ui";
+import { Container } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+
+const ParticlesBackground = dynamic(
+  () => import("@/shared/ui/ParticlesBackground").then((m) => m.ParticlesBackground),
+  { ssr: false },
+);
 
 interface Supporter {
   name: string;
@@ -191,19 +197,34 @@ export function SupportCarousel() {
   const velocity = useRef(0);
   const raf = useRef(0);
   const angleRef = useRef(0);
+  const visibleRef = useRef(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const stageRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        visibleRef.current = entry?.isIntersecting ?? false;
+      },
+      { rootMargin: "120px 0px", threshold: 0.01 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!mounted) return;
     let alive = true;
     const tick = () => {
       if (!alive) return;
-      if (!dragging.current) {
+      if (visibleRef.current && !dragging.current) {
         angleRef.current += 0.0015 + velocity.current;
         velocity.current *= 0.94;
         if (Math.abs(velocity.current) < 0.0001) velocity.current = 0;
@@ -235,7 +256,7 @@ export function SupportCarousel() {
   const step = (2 * Math.PI) / SUPPORTERS.length;
 
   return (
-    <section className="relative overflow-hidden bg-[#f0f7f1] py-16 md:py-24">
+    <section ref={sectionRef} className="relative overflow-hidden bg-[#f0f7f1] py-16 md:py-24">
       <ParticlesBackground theme="green" count={52} className="absolute inset-0 opacity-70" />
       <Container className="relative z-10">
         <h2 className="text-gradient-brand text-center text-[clamp(1.5rem,3.5vw,2rem)] font-bold uppercase tracking-[0.18em]">

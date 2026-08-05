@@ -1,13 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import MuxPlayer from "@mux/mux-player-react";
 import type MuxPlayerElement from "@mux/mux-player";
 import { Container, ErrorState, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { hapticTap } from "@/shared/lib/haptic";
 import { useHomeStats, type HomeStats } from "../hooks/useHomeStats";
+
+const MuxPlayer = dynamic(() => import("@mux/mux-player-react"), {
+  ssr: false,
+});
 
 const MUX_PLAYBACK_ID = "NEMsgbV9d7wxN9I84A4BGN400BkSluX3VRvkRbjQgl014";
 const PROMO_THUMBNAIL = "/images/web/promo-thumbnail.png";
@@ -161,38 +165,44 @@ function StatsSkeleton() {
 
 function PromoVideo() {
   const [started, setStarted] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const playerRef = useRef<MuxPlayerElement | null>(null);
 
   function startPlayback() {
     hapticTap();
     setStarted(true);
+  }
+
+  useEffect(() => {
+    if (!started || loadError) return;
     const player = playerRef.current;
     if (!player) return;
-    // Same user gesture → play with sound (no second click).
     void player.play().catch(() => {
       player.muted = true;
       void player.play().then(() => {
         player.muted = false;
       });
     });
-  }
+  }, [started, loadError]);
 
   return (
     <div className="relative overflow-hidden rounded-[24px] bg-[#0b1220] shadow-[0_24px_60px_-28px_rgba(25,134,28,0.4)] ring-1 ring-black/[0.06]">
       <div className="relative aspect-video w-full">
-        <MuxPlayer
-          ref={playerRef}
-          playbackId={MUX_PLAYBACK_ID}
-          poster={PROMO_THUMBNAIL}
-          metadataVideoTitle="SmolyanVote промо"
-          streamType="on-demand"
-          playsInline
-          preload="metadata"
-          className="absolute inset-0 h-full w-full"
-          style={{ width: "100%", height: "100%", aspectRatio: "16 / 9" }}
-        />
+        {started && !loadError && (
+          <MuxPlayer
+            ref={playerRef}
+            playbackId={MUX_PLAYBACK_ID}
+            metadataVideoTitle="SmolyanVote промо"
+            streamType="on-demand"
+            playsInline
+            preload="auto"
+            className="absolute inset-0 h-full w-full"
+            style={{ width: "100%", height: "100%", aspectRatio: "16 / 9" }}
+            onError={() => setLoadError(true)}
+          />
+        )}
 
-        {!started && (
+        {(!started || loadError) && (
           <button
             type="button"
             onClick={startPlayback}
@@ -205,7 +215,6 @@ function PromoVideo() {
               fill
               sizes="(max-width: 1200px) 100vw, 1200px"
               className="object-cover object-center"
-              priority={false}
             />
             <span
               aria-hidden

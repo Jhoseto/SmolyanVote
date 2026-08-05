@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Container } from "@/shared/ui";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
 
@@ -30,16 +31,27 @@ export function FinalRegistrationSection() {
       />
 
       <Container className="relative z-10">
-        <div
-          className="overflow-hidden rounded-[28px] border border-white/70 px-6 py-12 text-center shadow-[0_18px_45px_rgba(15,118,110,0.18)] md:px-12 md:py-14"
-          style={{
-            backgroundImage:
-              "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.78) 100%), url('/images/web/reg.webp')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          <div className="mx-auto max-w-3xl">
+        <div className="relative overflow-hidden rounded-[28px] border border-white/70 px-6 py-12 text-center shadow-[0_18px_45px_rgba(15,118,110,0.18)] md:px-12 md:py-14">
+          <Image
+            src="/images/web/reg.webp"
+            alt=""
+            fill
+            loading="lazy"
+            sizes="(max-width: 768px) 100vw, 1200px"
+            quality={85}
+            className="object-cover object-center"
+            aria-hidden
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.78) 100%)",
+            }}
+          />
+
+          <div className="relative z-10 mx-auto max-w-3xl">
             <h2 className="text-gradient-brand text-[clamp(1.75rem,4vw,2.5rem)] font-bold">
               Време е за действие
             </h2>
