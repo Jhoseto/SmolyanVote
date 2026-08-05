@@ -1,6 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { AppProviders } from "@/providers/AppProviders";
@@ -20,14 +18,6 @@ import {
   MOBILE_FONTS_CSS,
 } from "@/shared/lib/fontUrls";
 import { getShellMessages, resolveLanguageFromGoogtransCookie } from "@/lib/i18n/locales";
-
-/** Manrope cyrillic+latin (~1.8 KB) — hero title before full mobile sheet loads. */
-const MOBILE_FONT_CRITICAL = readFileSync(
-  join(process.cwd(), "public/fonts/mobile/fonts-critical.css"),
-  "utf8",
-);
-
-const INLINE_CRITICAL_CSS = `${HERO_CRITICAL_CSS}@media(max-width:767px){${MOBILE_FONT_CRITICAL}}`;
 
 const SITE_URL = "https://smolyanvote.com";
 const SITE_NAME = "SmolyanVote";
@@ -207,11 +197,11 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD) }}
         />
         {/*
-          Inline critical CSS: hero layout (LCP paint before Tailwind) + Manrope
-          faces on mobile. Full mobile fonts + footer + icons load deferred.
-          Mobile never loads full bootstrap-icons (shell subset covers homepage).
+          Inline hero layout only — NO @font-face here: inlined Manrope rules
+          pulled two woff2 files (~40 KB) into the critical path on PSI (327 ms).
+          LCP is the hero image; title can swap from system-ui after deferred fonts.
         */}
-        <style dangerouslySetInnerHTML={{ __html: INLINE_CRITICAL_CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: HERO_CRITICAL_CSS }} />
         <link
           rel="stylesheet"
           href={DESKTOP_FONTS_CSS}
@@ -226,10 +216,10 @@ export default async function RootLayout({
           crossOrigin="anonymous"
           media="(min-width: 768px)"
         />
-        {/* Inter / Source Sans / IBM — after first paint on mobile (LCP is the hero image). */}
+        {/* All mobile fonts after LCP — hero image must win Slow-4G bandwidth. */}
         <DeferredStylesheet
           href={MOBILE_FONTS_CSS}
-          idleTimeoutMs={600}
+          idleTimeoutMs={2500}
           matchMedia="(max-width: 767px)"
         />
         <DeferredStylesheet href={FOOTER_CSS} idleTimeoutMs={600} />
