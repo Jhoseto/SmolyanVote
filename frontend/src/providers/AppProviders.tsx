@@ -235,11 +235,11 @@ function DeferredSecondaryShell() {
 
   useEffect(() => {
     const mobile = window.matchMedia("(max-width: 767px)").matches;
-    const idleMs = mobile ? 2000 : 800;
+    const idleMs = mobile ? 4500 : 800;
     const schedule =
       typeof requestIdleCallback === "function"
         ? (cb: () => void) => requestIdleCallback(cb, { timeout: idleMs })
-        : (cb: () => void) => window.setTimeout(cb, mobile ? 1200 : 400);
+        : (cb: () => void) => window.setTimeout(cb, mobile ? 3000 : 400);
     const id = schedule(() => setReady(true));
     return () => {
       if (typeof cancelIdleCallback === "function" && typeof id === "number") {

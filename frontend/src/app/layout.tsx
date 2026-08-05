@@ -6,10 +6,10 @@ import "./globals.css";
 import { AppProviders } from "@/providers/AppProviders";
 import { Footer } from "@/features/shell";
 import { ShellNavbar } from "./ShellNavbar";
-import { NotificationBell } from "@/features/notifications";
 import { CookiePreferencesLink } from "@/features/cookie-consent";
 import { NewsletterSubscribeButton } from "@/features/newsletter";
 import { DeferredStylesheet } from "@/shared/ui/DeferredStylesheet";
+import { HERO_CRITICAL_CSS } from "@/shared/lib/heroCriticalCss";
 import {
   BOOTSTRAP_ICONS_CSS,
   BOOTSTRAP_ICONS_SHELL_CSS,
@@ -17,21 +17,17 @@ import {
   DESKTOP_FONTS_CSS,
   FLAG_ICONS_CSS,
   FOOTER_CSS,
-  MOBILE_FONT_PRELOAD_MANROPE_500_CY,
   MOBILE_FONTS_CSS,
 } from "@/shared/lib/fontUrls";
 import { getShellMessages, resolveLanguageFromGoogtransCookie } from "@/lib/i18n/locales";
 
-/**
- * Manrope cyrillic+latin only (~1.8 KB). Inlined under a mobile media query
- * so the hero title never waits on a fonts.css round-trip. Desktop fonts stay
- * as a separate cacheable stylesheet (inlining both previously bloated HTML
- * and hurt the desktop score).
- */
-const MOBILE_CRITICAL_FONT_CSS = readFileSync(
+/** Manrope cyrillic+latin (~1.8 KB) — hero title before full mobile sheet loads. */
+const MOBILE_FONT_CRITICAL = readFileSync(
   join(process.cwd(), "public/fonts/mobile/fonts-critical.css"),
   "utf8",
 );
+
+const INLINE_CRITICAL_CSS = `${HERO_CRITICAL_CSS}@media(max-width:767px){${MOBILE_FONT_CRITICAL}}`;
 
 const SITE_URL = "https://smolyanvote.com";
 const SITE_NAME = "SmolyanVote";
@@ -211,22 +207,16 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD) }}
         />
         {/*
-          Fonts + icon packs (React 19 hoists to <head>).
-          Desktop: cacheable external sheet (media-guarded — not blocking on mobile).
-          Mobile: ~1.8 KB Manrope critical faces inlined; full Inter/Source/IBM
-          sheet is non-blocking so it never competes with the LCP hero image on
-          Slow 4G. Footer CSS is below-fold and also non-blocking.
+          Inline critical CSS: hero layout (LCP paint before Tailwind) + Manrope
+          faces on mobile. Full mobile fonts + footer + icons load deferred.
+          Mobile never loads full bootstrap-icons (shell subset covers homepage).
         */}
+        <style dangerouslySetInnerHTML={{ __html: INLINE_CRITICAL_CSS }} />
         <link
           rel="stylesheet"
           href={DESKTOP_FONTS_CSS}
           media="(min-width: 768px)"
           precedence="default"
-        />
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `@media (max-width:767px){${MOBILE_CRITICAL_FONT_CSS}}`,
-          }}
         />
         <link
           rel="preload"
@@ -236,23 +226,12 @@ export default async function RootLayout({
           crossOrigin="anonymous"
           media="(min-width: 768px)"
         />
-        <link
-          rel="preload"
-          href={MOBILE_FONT_PRELOAD_MANROPE_500_CY}
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-          media="(max-width: 767px)"
-        />
-        {/* Full mobile fonts (Inter / Source Sans / IBM) — AFTER first paint so
-            their ~140 KB of woff2 never steal Slow-4G bandwidth from the LCP
-            hero image. Body text briefly uses system-ui (font-display: swap). */}
+        {/* Inter / Source Sans / IBM — after first paint on mobile (LCP is the hero image). */}
         <DeferredStylesheet
           href={MOBILE_FONTS_CSS}
-          idleTimeoutMs={400}
+          idleTimeoutMs={600}
           matchMedia="(max-width: 767px)"
         />
-        {/* Below-fold footer decoration — never on the LCP critical path. */}
         <DeferredStylesheet href={FOOTER_CSS} idleTimeoutMs={600} />
         <DeferredStylesheet
           href={BOOTSTRAP_ICONS_SHELL_CSS}
@@ -264,15 +243,10 @@ export default async function RootLayout({
           idleTimeoutMs={3000}
           matchMedia="(min-width: 768px)"
         />
+        {/* Mobile: shell subset covers 100% of homepage icons — skip full 13 KB sheet. */}
         <DeferredStylesheet
           href={BOOTSTRAP_ICONS_SHELL_CSS}
-          idleTimeoutMs={1200}
-          matchMedia="(max-width: 767px)"
-        />
-        {/* Shell subset alone covers homepage icon usage — full sheet later. */}
-        <DeferredStylesheet
-          href={BOOTSTRAP_ICONS_CSS}
-          idleTimeoutMs={8000}
+          idleTimeoutMs={1000}
           matchMedia="(max-width: 767px)"
         />
         <DeferredStylesheet href={FLAG_ICONS_CSS} matchMedia="(max-width: 767px)" />
@@ -289,7 +263,7 @@ export default async function RootLayout({
           >
             Към съдържанието
           </a>
-          <ShellNavbar notificationSlot={<NotificationBell />} lang={lang} />
+          <ShellNavbar lang={lang} />
           <main
             id="main-content"
             className="flex-1 pt-[var(--navbar-offset)]"

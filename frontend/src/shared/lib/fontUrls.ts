@@ -4,17 +4,10 @@ export const DESKTOP_FONTS_CSS = "/fonts/desktop/fonts.css";
 /** Manrope cyrillic (variable font, covers 400–700) — hero title on desktop. */
 export const DESKTOP_FONT_PRELOAD_MANROPE_CY = "/fonts/desktop/xn7gYHE41ni1AdIRggOxSuXd.woff2";
 
-/** Self-hosted mobile subset — loaded non-blocking after first paint. */
+/** Self-hosted mobile subset (greek/viet trimmed — see build-mobile-fonts-critical.mjs). */
 export const MOBILE_FONTS_CSS = "/fonts/mobile/fonts.css";
 
-/**
- * Tiny Manrope-only sheet (cyrillic + latin) — inlined on mobile so the
- * hero title can paint without a fonts.css network hop. Full mobile sheet
- * (Inter / Source Sans / IBM Plex) is deferred via NonBlockingStylesheet.
- */
-export const MOBILE_FONTS_CRITICAL_CSS = "/fonts/mobile/fonts-critical.css";
-
-/** Manrope 500 cyrillic — hero title on mobile. */
+/** @deprecated No mobile font preload — LCP is the hero image; preload stole bandwidth. */
 export const MOBILE_FONT_PRELOAD_MANROPE_500_CY =
   "/fonts/mobile/xn7gYHE41ni1AdIRggOxSuXd.woff2";
 

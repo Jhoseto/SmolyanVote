@@ -5,45 +5,44 @@ const HERO_DESKTOP_JPG = "/images/web/hero3-desktop.jpg";
 const HERO_DESKTOP_WEBP = "/images/web/hero3-desktop.webp";
 const HERO_DESKTOP_AVIF = "/images/web/hero3-desktop.avif";
 
+/** Intrinsic size of hero3-mobile.jpg — reserves space before CSS paints. */
+const HERO_MOBILE_W = 828;
+const HERO_MOBILE_H = 331;
+
 /**
  * LCP hero — split by viewport so each side only ever fetches its own asset.
- * Both are plain pre-sized static images (AVIF/WebP + JPG fallback), not
- * `next/image`: that component still emits an *unconditional*
- * `<link rel="preload">` for whichever Image has `priority`/`fetchPriority`
- * set, with no way to media-guard it — on mobile that preload fired anyway,
- * at the very front of <head>, competing at high priority against the real
- * mobile hero for bandwidth (measured contributor to a 4.6s mobile LCP).
- * Plain `<picture>` + a manually media-guarded preload link gives full
- * control with zero risk of the two viewports' preloads colliding.
+ * Layout classes `sv-hero-*` are defined in inline critical CSS (see
+ * `heroCriticalCss.ts`) so the image can paint before the Tailwind bundle
+ * loads. Tailwind utilities on `<picture>` are progressive enhancement only.
  */
 export function HeroImage() {
   return (
     <>
       {/* Mobile LCP — static asset in HTML (AVIF/WebP + JPG fallback) */}
-      <picture className="absolute inset-0 md:hidden">
+      <picture className="sv-hero-bg sv-hero-bg--mobile absolute inset-0 md:hidden">
         <source srcSet={HERO_MOBILE_AVIF} type="image/avif" />
         <source srcSet={HERO_MOBILE_WEBP} type="image/webp" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={HERO_MOBILE_JPG}
           alt="Смолян"
-          decoding="async"
+          width={HERO_MOBILE_W}
+          height={HERO_MOBILE_H}
+          decoding="sync"
           fetchPriority="high"
           className="h-full w-full object-cover"
           style={{ objectPosition: "center top" }}
         />
       </picture>
-      {/* Desktop LCP — static asset, hidden on mobile via CSS only (no
-          `<img>` swap based on viewport, so nothing here can leak a
-          cross-viewport network request). */}
-      <picture className="absolute inset-0 max-md:hidden">
+      {/* Desktop LCP — static asset, hidden on mobile via CSS only */}
+      <picture className="sv-hero-bg sv-hero-bg--desktop absolute inset-0 max-md:hidden">
         <source srcSet={HERO_DESKTOP_AVIF} type="image/avif" />
         <source srcSet={HERO_DESKTOP_WEBP} type="image/webp" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={HERO_DESKTOP_JPG}
           alt="Смолян"
-          decoding="async"
+          decoding="sync"
           fetchPriority="high"
           className="h-full w-full object-cover"
           style={{ objectPosition: "center top" }}
@@ -60,8 +59,7 @@ export function HeroImage() {
   );
 }
 
-/** Preload hints for both hero viewports — each strictly media-guarded so
- *  only the one that will actually paint is ever requested. */
+/** Preload hints for both hero viewports — each strictly media-guarded. */
 export function HeroImagePreloads() {
   return (
     <>

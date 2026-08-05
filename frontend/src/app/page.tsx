@@ -60,7 +60,7 @@ export default function HomePage() {
   return (
     <>
       <HeroImagePreloads />
-      <section className="relative flex min-h-[85vh] items-center overflow-hidden">
+      <section className="sv-hero-shell relative flex min-h-[85vh] items-center overflow-hidden">
         <HeroImage />
         <Hero />
       </section>
