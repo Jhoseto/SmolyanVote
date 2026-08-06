@@ -20,6 +20,9 @@ import java.util.List;
 @Repository
 public interface PublicationRepository extends JpaRepository<PublicationEntity, Long> {
 
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.id = :id")
+    java.util.Optional<PublicationEntity> findByIdWithAuthor(@Param("id") Long id);
+
     @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status = :status ORDER BY p.created DESC")
     Page<PublicationEntity> findByStatusWithAuthorOrderByCreatedDesc(@Param("status") PublicationStatus status, Pageable pageable);
 

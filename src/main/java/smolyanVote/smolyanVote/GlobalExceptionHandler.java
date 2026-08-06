@@ -12,6 +12,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -172,6 +173,16 @@ public class GlobalExceptionHandler {
             return null;
         }
         return json(HttpStatus.PAYLOAD_TOO_LARGE, "Файлът е твърде голям (макс. 100MB).");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public Object handleUnreadableJson(HttpMessageNotReadableException ex, HttpServletRequest request,
+                                       HttpServletResponse response) throws IOException {
+        log.warn("Malformed JSON on {}: {}", request.getRequestURI(), ex.getMessage());
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        return json(HttpStatus.BAD_REQUEST, "Невалиден JSON в заявката.");
     }
 
     @ExceptionHandler(Exception.class)

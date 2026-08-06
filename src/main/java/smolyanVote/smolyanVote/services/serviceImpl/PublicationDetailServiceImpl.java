@@ -17,6 +17,7 @@ import smolyanVote.smolyanVote.services.interfaces.PublicationDetailService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -82,6 +83,22 @@ public class PublicationDetailServiceImpl implements PublicationDetailService {
         publicationRepository.save(publication);
 
         return buildPublicationResponseDTO(publication, auth);
+    }
+
+    @Override
+    @Transactional
+    public PublicationResponseDTO updatePublication(Long id, PublicationRequestDTO request, Authentication auth) {
+        PublicationEntity publication = publicationRepository.findByIdWithAuthor(id)
+                .orElseThrow(() -> new EntityNotFoundException("Публикацията не е намерена."));
+        if (!publicationService.canEditPublication(publication, auth)) {
+            throw new AccessDeniedException("Нямате права да редактирате тази публикация.");
+        }
+        if (request.getCategory() == null) {
+            throw new IllegalArgumentException("Изберете категория.");
+        }
+        PublicationEntity updated = publicationService.update(publication, request);
+        PublicationEntity reloaded = publicationRepository.findByIdWithAuthor(updated.getId()).orElse(updated);
+        return buildPublicationResponseDTO(reloaded, auth);
     }
 
     @Override

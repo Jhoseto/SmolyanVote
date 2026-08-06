@@ -47,7 +47,8 @@ export function PublicationEditForm({ publication, onSaved, onCancel }: Publicat
   } = form;
 
   return (
-    <Card className="flex flex-col gap-4 p-4">
+    <form onSubmit={onSubmit} noValidate>
+      <Card className="flex flex-col gap-4 p-4">
       <textarea
         {...register("content")}
         rows={4}
@@ -189,10 +190,11 @@ export function PublicationEditForm({ publication, onSaved, onCancel }: Publicat
         <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
           Отказ
         </Button>
-        <Button type="submit" onClick={onSubmit} disabled={isPending || !isValid}>
+        <Button type="submit" disabled={isPending || !isValid}>
           {isPending ? "Запазване…" : "Запази"}
         </Button>
       </div>
-    </Card>
+      </Card>
+    </form>
   );
 }

@@ -186,8 +186,9 @@ public class PublicationsController {
         }
 
         PublicationEntity created = publicationService.create(request, user);
+        PublicationEntity reloaded = publicationRepository.findByIdWithAuthor(created.getId()).orElse(created);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(publicationDetailService.buildPublicationResponseDTO(created, auth));
+                .body(publicationDetailService.buildPublicationResponseDTO(reloaded, auth));
     }
 
     @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -210,20 +211,15 @@ public class PublicationsController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody PublicationRequestDTO request,
                                      Authentication auth) {
-        PublicationEntity publication = publicationService.findById(id);
-        if (publication == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Публикацията не е намерена."));
+        try {
+            return ResponseEntity.ok(publicationDetailService.updatePublication(id, request, auth));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error(e.getMessage()));
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiMessageResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiMessageResponse.error(e.getMessage()));
         }
-        if (!publicationService.canEditPublication(publication, auth)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiMessageResponse.error("Нямате права да редактирате тази публикация."));
-        }
-        if (request.getCategory() == null) {
-            return ResponseEntity.badRequest().body(ApiMessageResponse.error("Изберете категория."));
-        }
-
-        PublicationEntity updated = publicationService.update(publication, request);
-        return ResponseEntity.ok(publicationDetailService.buildPublicationResponseDTO(updated, auth));
     }
 
     @DeleteMapping("/{id}")

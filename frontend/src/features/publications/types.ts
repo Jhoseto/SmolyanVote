@@ -68,10 +68,10 @@ export interface CreatePublicationPayload {
   /** Backend defaults to PUBLISHED; send explicitly so posts never land as PENDING. */
   status?: "PUBLISHED" | "PENDING";
   imageUrl?: string;
-  emotion?: string;
-  emotionText?: string;
-  linkUrl?: string;
-  linkMetadata?: string;
+  emotion?: string | null;
+  emotionText?: string | null;
+  linkUrl?: string | null;
+  linkMetadata?: string | null;
 }
 
 /** POST /api/v1/publications/upload-image */

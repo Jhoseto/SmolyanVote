@@ -197,7 +197,8 @@ public class PublicationEntity extends BaseEntity {
 
     public boolean canBeEditedBy(UserEntity user) {
         if (user == null) return false;
-        return author.getId().equals(user.getId());
+        if (user.getRole() == smolyanVote.smolyanVote.models.enums.UserRole.ADMIN) return true;
+        return author != null && author.getId().equals(user.getId());
     }
 
     public boolean canBeViewedBy(UserEntity user) {

@@ -10,7 +10,7 @@ const KIND_LABEL: Record<EventDetailSeo["kind"], string> = {
 
 export function EventSeoArticle({ data }: { data: EventDetailSeo }) {
   return (
-    <article className="mx-auto max-w-3xl px-4 py-10">
+    <article className="sr-only" aria-label={data.title}>
       <SeoBreadcrumbs
         items={[
           { name: "Начало", href: "/" },

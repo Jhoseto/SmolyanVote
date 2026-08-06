@@ -202,13 +202,27 @@ public class PublicationServiceImpl implements PublicationService {
             publication.setImageUrl(request.getImageUrl());
         }
 
-        // Update emotion
-        publication.setEmotion(request.getEmotion());
-        publication.setEmotionText(request.getEmotionText());
+        // Update emotion — clear when omitted/blank
+        if (request.getEmotion() != null && !request.getEmotion().trim().isEmpty()) {
+            publication.setEmotion(request.getEmotion());
+            publication.setEmotionText(request.getEmotionText());
+        } else {
+            publication.setEmotion(null);
+            publication.setEmotionText(null);
+        }
 
-        // Update link (composer link preview) — липсваше преди, линкът не се пазеше при edit
-        publication.setLinkUrl(request.getLinkUrl());
-        publication.setLinkMetadata(request.getLinkMetadata());
+        // Update link only when client sends link fields (omit = keep existing)
+        if (request.getLinkUrl() != null) {
+            String trimmedLink = request.getLinkUrl().trim();
+            if (trimmedLink.isEmpty()) {
+                publication.clearLink();
+            } else {
+                publication.setLinkUrl(trimmedLink);
+                if (request.getLinkMetadata() != null && !request.getLinkMetadata().trim().isEmpty()) {
+                    publication.setLinkMetadata(request.getLinkMetadata());
+                }
+            }
+        }
 
         // ПОПРАВКА: Ако публикацията беше публикувана, сега става редактирана
         if (originalStatus == PublicationStatus.PUBLISHED) {
@@ -717,7 +731,8 @@ public class PublicationServiceImpl implements PublicationService {
         UserEntity user = userService.getCurrentUser();
         if (user == null) return false;
 
-        return publication.getAuthor().getId().equals(user.getId());
+        Long authorId = publicationRepository.findAuthorIdByPublicationId(publication.getId());
+        return authorId != null && authorId.equals(user.getId());
     }
 
     @Override
@@ -728,8 +743,7 @@ public class PublicationServiceImpl implements PublicationService {
         UserEntity user = userService.getCurrentUser();
         if (user == null) return false;
 
-        // Админите могат да редактират всички публикации
-        if (user.getRole().equals(UserRole.ADMIN) || user.getUsername().equals(publication.getAuthor().getUsername())){
+        if (user.getRole().equals(UserRole.ADMIN)) {
             return true;
         }
 

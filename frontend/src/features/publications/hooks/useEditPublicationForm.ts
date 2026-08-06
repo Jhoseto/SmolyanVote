@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/shared/hooks/useToast";
@@ -38,6 +38,10 @@ export function useEditPublicationForm(publication: Publication, onSaved: () => 
     defaultValues: { content: publication.content, category: publication.category },
   });
 
+  useEffect(() => {
+    void form.trigger();
+  }, [form]);
+
   async function fetchLinkPreview() {
     const url = linkUrl.trim();
     if (!url) return;
@@ -64,17 +68,29 @@ export function useEditPublicationForm(publication: Publication, onSaved: () => 
       }
 
       const content = values.content.trim();
+      const resolvedLinkUrl = linkMetadata?.url ?? (linkUrl.trim() || publication.linkUrl || undefined);
+      const resolvedLinkMetadata = linkMetadata
+        ? JSON.stringify(linkMetadata)
+        : publication.linkMetadata ?? undefined;
+
       await updatePublication({
         id: publication.id,
         payload: {
           title: content.slice(0, 100) || "Публикация",
           content,
           category: values.category,
-          imageUrl,
-          emotion: emotion?.emoji,
-          emotionText: emotion?.text,
-          linkUrl: linkMetadata ? linkMetadata.url : undefined,
-          linkMetadata: linkMetadata ? JSON.stringify(linkMetadata) : undefined,
+          ...(imageUrl ? { imageUrl } : {}),
+          ...(emotion?.emoji
+            ? { emotion: emotion.emoji, emotionText: emotion.text }
+            : { emotion: null, emotionText: null }),
+          ...(showLinkInput
+            ? {
+                linkUrl: resolvedLinkUrl ?? null,
+                linkMetadata: resolvedLinkMetadata ?? null,
+              }
+            : publication.linkUrl
+              ? { linkUrl: "", linkMetadata: "" }
+              : {}),
         },
       });
 

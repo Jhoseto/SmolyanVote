@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.security.core.Authentication;
 import smolyanVote.smolyanVote.models.PublicationEntity;
+import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
 public interface PublicationDetailService {
@@ -27,6 +28,11 @@ public interface PublicationDetailService {
      * Build PublicationResponseDTO with user interactions
      */
     PublicationResponseDTO buildPublicationResponseDTO(PublicationEntity publication, Authentication auth);
+
+    /**
+     * Update a publication and return the shaped response — single transaction, author eagerly loaded.
+     */
+    PublicationResponseDTO updatePublication(Long id, PublicationRequestDTO request, Authentication auth);
 
     /**
      * Calculate and set author online status
