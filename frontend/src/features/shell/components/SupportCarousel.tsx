@@ -13,31 +13,15 @@ const ParticlesBackground = dynamic(
 );
 
 interface Supporter {
-  name: string;
-  lines: string[];
+  id: string;
 }
 
 const SUPPORTERS: Supporter[] = [
-  {
-    name: "Dr. Michael Thompson",
-    lines: ["Senior Policy Advisor", "Geneva, Switzerland", "Специалист по електронна демокрация"],
-  },
-  {
-    name: "Ing. Stefan Müller",
-    lines: ["IT Consultant", "Berlin, Germany", "Създател на платформи за гражданско участие"],
-  },
-  {
-    name: "Андрей Цанов, MBA",
-    lines: ["Изпълнителен директор", "Международен консултинг, Лондон", "Специалист по управление"],
-  },
-  {
-    name: "Георги Стоянов",
-    lines: ["Собственик на ресторантска верига", "Член на Националната асоциация на ресторантьорите"],
-  },
-  {
-    name: "Андрей Цанов",
-    lines: ["Изпълнителен директор на търговска компания", "Член на Ротари клуб"],
-  },
+  { id: "supporter-1" },
+  { id: "supporter-2" },
+  { id: "supporter-3" },
+  { id: "supporter-4" },
+  { id: "supporter-5" },
 ];
 
 /** Slightly smaller than v1 (250×360) so the orbit reads wider. */
@@ -105,15 +89,7 @@ function useCarouselRadii(enabled: boolean) {
   return radii;
 }
 
-function SupporterCard({
-  supporter,
-  active,
-  style,
-}: {
-  supporter: Supporter;
-  active: boolean;
-  style?: CSSProperties;
-}) {
+function SupporterCard({ active, style }: { active: boolean; style?: CSSProperties }) {
   return (
     <article
       className={cn(
@@ -139,7 +115,7 @@ function SupporterCard({
       >
         <Image
           src="/images/web/riple.jpeg"
-          alt={supporter.name}
+          alt=""
           fill
           sizes={`${CARD_W}px`}
           className={cn(
@@ -152,34 +128,6 @@ function SupporterCard({
         {active && (
           <span className="pointer-events-none absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/25 to-transparent" />
         )}
-      </div>
-
-      <div className="px-3.5 pb-4 pt-3 text-center">
-        <h3 className="font-display truncate text-[13px] font-bold tracking-[-0.01em] text-gradient-brand">
-          {supporter.name}
-        </h3>
-        <div
-          className={cn(
-            "mx-auto my-2 h-px w-10 bg-gradient-to-r from-transparent via-primary/35 to-transparent transition-all duration-300",
-            active && "w-14 via-primary/55",
-          )}
-        />
-        <div className="space-y-0.5">
-          {supporter.lines.map((line, idx) => (
-            <p
-              key={line}
-              className={cn(
-                idx === 0 &&
-                  "text-[9px] font-semibold uppercase tracking-[0.07em] text-primary-700/85",
-                idx === 1 && "text-[9px] text-[color:var(--color-text-muted)]",
-                idx === 2 &&
-                  "text-[10px] leading-snug text-[color:var(--color-text-secondary)]",
-              )}
-            >
-              {line}
-            </p>
-          ))}
-        </div>
       </div>
 
       {active && (
@@ -299,11 +247,7 @@ export function SupportCarousel() {
             style={{ width: `${CARD_W}px`, height: `${CARD_H}px`, transformStyle: "preserve-3d" }}
           >
             <CarouselHubLogo />
-            <SupporterCard
-              supporter={SUPPORTERS[0]}
-              active
-              style={{ width: `${CARD_W}px`, height: `${CARD_H}px` }}
-            />
+            <SupporterCard active style={{ width: `${CARD_W}px`, height: `${CARD_H}px` }} />
           </div>
         ) : (
           <div
@@ -326,8 +270,7 @@ export function SupportCarousel() {
 
               return (
                 <SupporterCard
-                  key={s.name}
-                  supporter={s}
+                  key={s.id}
                   active={active}
                   style={{
                     position: "absolute",

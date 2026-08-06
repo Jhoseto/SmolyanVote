@@ -64,9 +64,9 @@ export function MessengerPanel() {
                 <button
                   type="button"
                   onClick={showSearch}
-                  className="sv-msg-chip flex items-center gap-1 bg-[image:var(--gradient-primary)] px-2.5 py-1 text-[10.5px] font-semibold text-white shadow-none hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="btn-brand flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-semibold shadow-[0_2px_6px_rgba(25,134,28,0.28)] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  <i className="bi bi-pencil-square text-[11px]" />
+                  <i className="bi bi-pencil-square text-[11px]" aria-hidden />
                   Нов
                 </button>
                 <button

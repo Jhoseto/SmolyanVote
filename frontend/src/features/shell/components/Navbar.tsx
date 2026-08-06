@@ -8,6 +8,7 @@ import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
 import { hapticTap } from "@/shared/lib/haptic";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
+import { Avatar } from "@/shared/ui";
 import { getShellMessages, type Language } from "@/lib/i18n/locales";
 import { NAV_ITEMS } from "../data/navItems";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -26,7 +27,7 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
   const [mobileSubmenu, setMobileSubmenu] = useState<"vote" | "monitor" | "profile" | null>(null);
   const pathname = usePathname();
   const t = getShellMessages(lang);
-  const { isAuthenticated, isHydrated } = useAuth();
+  const { isAuthenticated, isHydrated, user } = useAuth();
   const openAuth = useLoginGateStore((s) => s.open);
 
   function closeMobileNav() {
@@ -58,21 +59,19 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
   return (
     <nav className="fixed inset-x-0 top-0 z-[1030] w-full">
       <div
-        className="flex w-full items-center justify-center border-b border-black/[0.06] px-4 py-2.5 shadow-[var(--shadow-navbar-2)] backdrop-blur-xl backdrop-saturate-150 sm:px-6 lg:px-8"
+        className="flex w-full items-center justify-center border-b border-black/[0.06] px-4 py-2.5 shadow-[var(--shadow-navbar-2)] backdrop-blur-xl backdrop-saturate-150 sm:px-6 lg:px-8 xl:px-10"
         style={{
           background: "var(--gradient-navbar)",
           minHeight: "var(--navbar-height)",
         }}
       >
-        <div className="flex w-full max-w-[1440px] items-center justify-between gap-3">
+        <div className="relative flex w-full max-w-[1600px] items-center justify-between">
+          {/* Left — logo */}
           <Link
             href="/"
             onClick={handleHomeNavClick}
-            className="flex shrink-0 items-center gap-2.5"
+            className="relative z-10 flex shrink-0 items-center gap-2.5"
           >
-            {/* Static 40×40 PNG — plain <img> so next/image never emits an
-                unconditional high-priority preload that competes with the hero
-                LCP image on mobile Slow 4G. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={LOGO_NAV}
@@ -87,36 +86,45 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
             </span>
           </Link>
 
-          <div className="hidden items-center gap-0.5 xl:flex">
-            {NAV_ITEMS.map((item) => {
-              if (item.key === "vote") {
-                return <VoteNavMenu key="vote" label={t.nav.vote} />;
-              }
-              if (item.key === "monitor") {
-                return <MonitorNavMenu key="monitor" label={t.nav.monitor} />;
-              }
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={item.href === "/" ? handleHomeNavClick : undefined}
-                  className={cn(
-                    "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav-muted)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary",
-                    active && "bg-primary-50 text-primary",
-                  )}
-                >
-                  <i className={cn("bi", item.icon, "text-[1.05rem]", active ? "text-primary" : "text-[color:var(--color-text-nav-muted)]")} />
-                  <span>{t.nav[item.key]}</span>
-                </Link>
-              );
-            })}
-
-            <span className="mx-2 h-5 w-px shrink-0 bg-black/[0.08]" aria-hidden />
-            <LanguageSwitcher label={t.nav.languages} />
+          {/* Center — nav links (absolute so logo/right never wrap) */}
+          <div className="pointer-events-none absolute inset-0 hidden items-center justify-center xl:flex">
+            <div className="pointer-events-auto flex items-center gap-0.5">
+              {NAV_ITEMS.map((item) => {
+                if (item.key === "vote") {
+                  return <VoteNavMenu key="vote" label={t.nav.vote} />;
+                }
+                if (item.key === "monitor") {
+                  return <MonitorNavMenu key="monitor" label={t.nav.monitor} />;
+                }
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={item.href === "/" ? handleHomeNavClick : undefined}
+                    className={cn(
+                      "flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-2 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav-muted)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary",
+                      active && "bg-primary-50 text-primary",
+                    )}
+                  >
+                    <i
+                      className={cn(
+                        "bi text-[1.05rem]",
+                        item.icon,
+                        active ? "text-primary" : "text-[color:var(--color-text-nav-muted)]",
+                      )}
+                    />
+                    <span>{t.nav[item.key]}</span>
+                  </Link>
+                );
+              })}
+              <span className="mx-1 h-5 w-px shrink-0 bg-black/[0.08]" aria-hidden />
+              <LanguageSwitcher label={t.nav.languages} />
+            </div>
           </div>
 
-          <div className="hidden items-center gap-2 xl:flex">
+          {/* Right — desktop auth + notifications */}
+          <div className="relative z-10 hidden shrink-0 items-center gap-2 xl:flex">
             {!isHydrated ? (
               <div className="h-10 w-28" aria-hidden />
             ) : isAuthenticated ? (
@@ -144,10 +152,21 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-0.5 xl:hidden">
+          {/* Right — mobile */}
+          <div className="relative z-10 flex shrink-0 items-center gap-0.5 xl:hidden">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center">
               {isHydrated ? notificationSlot : null}
             </div>
+            {isHydrated && isAuthenticated && user ? (
+              <Link
+                href="/profile"
+                aria-label="Моят профил"
+                onClick={() => hapticTap()}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+              >
+                <Avatar username={user.username} imageUrl={user.imageUrl} size={32} />
+              </Link>
+            ) : null}
             <button
               type="button"
               aria-label={t.nav.menu}

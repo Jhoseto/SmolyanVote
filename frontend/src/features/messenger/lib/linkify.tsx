@@ -67,14 +67,69 @@ export function urlHost(url: string): string {
   }
 }
 
-const EMOJI_ONLY_RE = /^(?:\p{Extended_Pictographic}|\s)+$/u;
+const EMOJI_ONLY_RE = /^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\s)+$/u;
+const EMOJI_GRAPHEME_RE =
+  /[\p{Extended_Pictographic}\p{Emoji_Presentation}\u{1F1E6}-\u{1F1FF}]/u;
+
+export interface EmojiOnlyMeta {
+  isEmojiOnly: boolean;
+  count: number;
+}
+
+function normalizeEmojiText(text: string): string {
+  return text
+    .trim()
+    .replace(/[\u200B-\u200D\uFEFF]/g, "");
+}
+
+function isEmojiGrapheme(segment: string): boolean {
+  if (/^\s+$/.test(segment)) return false;
+  if (EMOJI_GRAPHEME_RE.test(segment)) return true;
+  if (/^[0-9#*]\uFE0F?\u20E3$/u.test(segment)) return true;
+  return /^[\p{Emoji}\uFE0F\u200D]+$/u.test(segment);
+}
+
+/** Split a message into emoji grapheme clusters (ignores whitespace). */
+export function splitEmojiGraphemes(text: string): string[] {
+  const trimmed = normalizeEmojiText(text);
+  if (!trimmed) return [];
+
+  try {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    const out: string[] = [];
+    for (const { segment } of segmenter.segment(trimmed)) {
+      if (/^\s+$/.test(segment)) continue;
+      out.push(segment);
+    }
+    return out;
+  } catch {
+    return [...trimmed.replace(/\s/g, "")];
+  }
+}
+
+/** True when the message is only emoji graphemes (optional whitespace between). */
+export function getEmojiOnlyMeta(text: string): EmojiOnlyMeta {
+  const graphemes = splitEmojiGraphemes(text);
+  if (graphemes.length === 0 || graphemes.length > 15) {
+    return { isEmojiOnly: false, count: 0 };
+  }
+
+  if (graphemes.every(isEmojiGrapheme)) {
+    return { isEmojiOnly: true, count: graphemes.length };
+  }
+
+  try {
+    const normalized = normalizeEmojiText(text);
+    const isEmojiOnly = EMOJI_ONLY_RE.test(normalized);
+    return {
+      isEmojiOnly,
+      count: isEmojiOnly ? graphemes.length || normalized.replace(/\s/g, "").length : 0,
+    };
+  } catch {
+    return { isEmojiOnly: false, count: 0 };
+  }
+}
 
 export function isEmojiOnly(text: string): boolean {
-  const trimmed = text.trim();
-  if (!trimmed || trimmed.length > 24) return false;
-  try {
-    return EMOJI_ONLY_RE.test(trimmed);
-  } catch {
-    return false;
-  }
+  return getEmojiOnlyMeta(text).isEmojiOnly;
 }

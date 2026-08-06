@@ -357,6 +357,38 @@
     max-width: 44ch;
   }
 
+  /* Viber-style: one emoji = large; two or more = compact row */
+  .sv-msg-body.sv-msg-emoji-single,
+  .sv-msg-body.sv-msg-emoji-multi {
+    max-width: none;
+    line-height: 1;
+  }
+
+  .sv-msg-emoji-content {
+    display: inline-block;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    user-select: text;
+  }
+
+  .sv-msg-emoji-content--single {
+    font-size: 4.75rem;
+    line-height: 1;
+  }
+
+  .sv-msg-emoji-content--multi {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 1.375rem;
+    line-height: 1.15;
+  }
+
+  .sv-msg-emoji-glyph {
+    display: inline-block;
+    line-height: 1;
+  }
+
   /* ------------------------------------------------------------- small parts */
 
   /* Recessed tray: a faint inner shadow makes it read as carved-in. */
@@ -521,6 +553,14 @@
   .sv-msg-composer-btn[data-active="true"] {
     background: var(--color-primary-50);
     color: var(--color-primary);
+  }
+
+  .sv-msg-emoji-viewport {
+    scrollbar-gutter: auto;
+  }
+
+  .sv-msg-emoji-picker [frimousse-list] {
+    width: 100%;
   }
 
   /* Send: a domed green button — radial sheen top-left, occlusion bottom. */

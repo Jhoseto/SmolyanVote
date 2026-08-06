@@ -37,6 +37,8 @@ interface PublicationCardProps {
   reportSlot?: ReactNode;
   reactionUserFollowSlot?: (userId: number) => ReactNode;
   reactionUserMessageSlot?: (userId: number) => ReactNode;
+  /** Wrap avatar + name (e.g. UserHoverCard composed at app/). */
+  wrapAuthor?: (children: ReactNode) => ReactNode;
 }
 
 export function PublicationCard({
@@ -47,6 +49,7 @@ export function PublicationCard({
   reportSlot,
   reactionUserFollowSlot,
   reactionUserMessageSlot,
+  wrapAuthor,
 }: PublicationCardProps) {
   const requireAuth = useRequireAuth();
   const linkMetadata = parseLinkMetadata(publication.linkMetadata);
@@ -85,53 +88,60 @@ export function PublicationCard({
     <>
       <Card className="flex flex-col gap-0 overflow-hidden p-0 shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-3 px-4 pt-4">
-          <div className="relative shrink-0">
-            {authorHref ? (
-              <Link href={authorHref}>
-                <Avatar
-                  username={publication.authorUsername ?? "?"}
-                  imageUrl={publication.authorImageUrl}
-                  size={44}
-                />
-              </Link>
-            ) : (
-              <Avatar
-                username={publication.authorUsername ?? "?"}
-                imageUrl={publication.authorImageUrl}
-                size={44}
-              />
-            )}
-            <OnlineStatusDot status={publication.authorOnlineStatus} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-[color:var(--color-text-primary)]">
-              {authorHref ? (
-                <Link href={authorHref} className="hover:text-primary hover:underline">
-                  {publication.authorUsername}
-                </Link>
-              ) : (
-                (publication.authorUsername ?? "Анонимен")
-              )}
-              {publication.emotion && (
-                <span className="ml-1.5 font-normal text-[color:var(--color-text-muted)]">
-                  се чувства {publication.emotion} <strong>{publication.emotionText}</strong>
-                </span>
-              )}
-            </p>
-            <p className="truncate text-xs text-[color:var(--color-text-muted)]">
-              {formatRelativeDate(publication.createdAt)}
-              {publication.readingTime ? ` · ${publication.readingTime} мин. четене` : ""}
-            </p>
-          </div>
+          {(() => {
+            const authorBlock = (
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="relative shrink-0">
+                  {authorHref ? (
+                    <Link href={authorHref}>
+                      <Avatar
+                        username={publication.authorUsername ?? "?"}
+                        imageUrl={publication.authorImageUrl}
+                        size={44}
+                      />
+                    </Link>
+                  ) : (
+                    <Avatar
+                      username={publication.authorUsername ?? "?"}
+                      imageUrl={publication.authorImageUrl}
+                      size={44}
+                    />
+                  )}
+                  <OnlineStatusDot status={publication.authorOnlineStatus} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-[color:var(--color-text-primary)]">
+                    {authorHref ? (
+                      <Link href={authorHref} className="hover:text-primary hover:underline">
+                        {publication.authorUsername}
+                      </Link>
+                    ) : (
+                      (publication.authorUsername ?? "Анонимен")
+                    )}
+                    {publication.emotion && (
+                      <span className="ml-1.5 font-normal text-[color:var(--color-text-muted)]">
+                        се чувства {publication.emotion} <strong>{publication.emotionText}</strong>
+                      </span>
+                    )}
+                  </p>
+                  <p className="truncate text-xs text-[color:var(--color-text-muted)]">
+                    {formatRelativeDate(publication.createdAt)}
+                    {publication.readingTime ? ` · ${publication.readingTime} мин. четене` : ""}
+                  </p>
+                </div>
+              </div>
+            );
+            return wrapAuthor ? wrapAuthor(authorBlock) : authorBlock;
+          })()}
           {followSlot}
           <span
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] px-2.5 py-1 text-[0.7rem] font-semibold",
+              "hidden shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] px-2.5 py-1 text-[0.7rem] font-semibold sm:inline-flex",
               CATEGORY_BADGE_CLASSES[publication.category],
             )}
           >
-            <i className={cn("bi", categoryIcon(publication.category))} />
-            <span className="hidden sm:inline">{categoryLabel(publication.category)}</span>
+            <i className={cn("bi", categoryIcon(publication.category))} aria-hidden />
+            {categoryLabel(publication.category)}
           </span>
           <PublicationModerationMenu
             publicationId={publication.id}
@@ -213,68 +223,79 @@ export function PublicationCard({
           </span>
         </div>
 
-        <div className="mt-2 grid grid-cols-4 gap-0.5 border-t border-border-default/50 px-1 py-1">
+        <div className="mt-2 flex w-full items-center justify-between border-t border-border-default/50 px-2 py-1.5 sm:gap-1 sm:px-1 sm:py-1">
           <button
             type="button"
             onClick={handleLike}
             disabled={isLiking}
+            aria-label="Харесвам"
             className={cn(
-              "flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
               publication.isLiked ? "text-primary" : "text-[color:var(--color-text-secondary)]",
             )}
           >
-            <i className={cn("bi", publication.isLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up")} />
-            <span className="hidden sm:inline">Харесвам</span>
+            <i
+              className={cn("bi text-base", publication.isLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up")}
+              aria-hidden
+            />
+            <span className="hidden md:inline">Харесвам</span>
           </button>
           <button
             type="button"
             onClick={handleDislike}
             disabled={isDisliking}
+            aria-label="Не харесвам"
             className={cn(
-              "flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
               publication.isDisliked
                 ? "text-[color:var(--color-error)]"
                 : "text-[color:var(--color-text-secondary)]",
             )}
           >
             <i
-              className={cn("bi", publication.isDisliked ? "bi-hand-thumbs-down-fill" : "bi-hand-thumbs-down")}
+              className={cn(
+                "bi text-base",
+                publication.isDisliked ? "bi-hand-thumbs-down-fill" : "bi-hand-thumbs-down",
+              )}
+              aria-hidden
             />
-            <span className="hidden sm:inline">Не харесвам</span>
+            <span className="hidden md:inline">Не харесвам</span>
           </button>
           <button
             type="button"
             onClick={() => onOpenDetail?.(publication.id, { focusComments: true })}
-            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
+            aria-label="Коментирай"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
           >
-            <i className="bi bi-chat" />
-            <span className="hidden sm:inline">Коментирай</span>
+            <i className="bi bi-chat-fill text-base" aria-hidden />
+            <span className="hidden md:inline">Коментирай</span>
           </button>
           <PublicationShareSheet
             title={publication.title}
             url={shareUrl}
             onShared={() => recordShare(publication.id)}
-            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
           >
-            <i className="bi bi-share" />
-            <span className="hidden sm:inline">Сподели</span>
+            <i className="bi bi-share text-base" aria-hidden />
+            <span className="hidden md:inline">Сподели</span>
           </PublicationShareSheet>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-border-default/40 px-3 py-2">
           <button
             type="button"
             onClick={handleBookmark}
             disabled={isBookmarking}
+            aria-label={publication.isBookmarked ? "Премахни от запазени" : "Запази"}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-xs transition-colors hover:bg-primary-50 disabled:opacity-50",
-              publication.isBookmarked ? "text-primary" : "text-[color:var(--color-text-muted)]",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
+              publication.isBookmarked ? "text-primary" : "text-[color:var(--color-text-secondary)]",
             )}
           >
-            <i className={cn("bi", publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")} />
-            Запази
+            <i
+              className={cn("bi text-base", publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")}
+              aria-hidden
+            />
+            <span className="hidden md:inline">Запази</span>
           </button>
-          <div className="flex items-center gap-2">{reportSlot}</div>
+          <div className="flex flex-1 items-center justify-center">{reportSlot}</div>
         </div>
       </Card>
 

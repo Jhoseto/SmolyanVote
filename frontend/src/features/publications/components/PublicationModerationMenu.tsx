@@ -79,9 +79,9 @@ export function PublicationModerationMenu({
         aria-label="Опции"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--color-text-muted)] hover:bg-[color:var(--color-surface-muted)]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[color:var(--color-text-secondary)] transition-colors hover:bg-[color:var(--color-surface-muted)] hover:text-[color:var(--color-text-heading)]"
       >
-        <i className="bi bi-three-dots" />
+        <i className="bi bi-three-dots-vertical text-lg leading-none" aria-hidden />
       </button>
 
       {open && (

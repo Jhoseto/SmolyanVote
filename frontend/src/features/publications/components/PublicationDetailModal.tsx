@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -32,9 +32,10 @@ interface PublicationDetailModalProps {
   onHashtagClick?: (tag: string) => void;
   followSlot?: (publication: Publication) => ReactNode;
   reportSlot?: (publication: Publication) => ReactNode;
-  commentsSlot?: (id: number) => ReactNode;
+  commentsSlot?: (id: number, totalComments: number) => ReactNode;
   reactionUserFollowSlot?: (userId: number) => ReactNode;
   reactionUserMessageSlot?: (userId: number) => ReactNode;
+  wrapAuthor?: (publication: Publication, children: ReactNode) => ReactNode;
 }
 
 export function PublicationDetailModal({
@@ -47,12 +48,14 @@ export function PublicationDetailModal({
   commentsSlot,
   reactionUserFollowSlot,
   reactionUserMessageSlot,
+  wrapAuthor,
 }: PublicationDetailModalProps) {
   const { data: publication, isPending, isError, refetch } = usePublicationDetail(id);
   const requireAuth = useRequireAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [reactionModalType, setReactionModalType] = useState<"like" | "dislike" | null>(null);
+  const [commentsExpanded, setCommentsExpanded] = useState(focusComments);
   const commentsRef = useRef<HTMLDivElement>(null);
 
   const [prevId, setPrevId] = useState(id);
@@ -61,12 +64,14 @@ export function PublicationDetailModal({
     setIsEditing(false);
     setLightboxOpen(false);
     setReactionModalType(null);
+    setCommentsExpanded(focusComments);
   }
 
   useEffect(() => {
     if (!focusComments || !publication) return;
+    setCommentsExpanded(true);
     const t = window.setTimeout(() => {
-      commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 120);
     return () => window.clearTimeout(t);
   }, [focusComments, publication?.id]);
@@ -139,53 +144,68 @@ export function PublicationDetailModal({
         )}
 
         {publication && !isEditing && (
-          <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:h-full lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:grid-rows-[minmax(0,1fr)]">
+          <div
+            className={cn(
+              // Desktop (lg+): unchanged side-by-side split.
+              "relative grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:h-full lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:grid-rows-[minmax(0,1fr)]",
+            )}
+          >
             <div className="flex h-full min-h-0 flex-col overflow-hidden border-b border-border-default/50 lg:border-b-0 lg:border-r">
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
                 <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
-                <div className="relative shrink-0">
-                  {authorHref ? (
-                    <Link href={authorHref} onClick={onClose}>
-                      <Avatar
-                        username={publication.authorUsername ?? "?"}
-                        imageUrl={publication.authorImageUrl}
-                        size={44}
-                      />
-                    </Link>
-                  ) : (
-                    <Avatar
-                      username={publication.authorUsername ?? "?"}
-                      imageUrl={publication.authorImageUrl}
-                      size={44}
-                    />
-                  )}
-                  <OnlineStatusDot status={publication.authorOnlineStatus} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[color:var(--color-text-primary)]">
-                    {authorHref ? (
-                      <Link
-                        href={authorHref}
-                        onClick={onClose}
-                        className="hover:text-primary hover:underline"
-                      >
-                        {publication.authorUsername}
-                      </Link>
-                    ) : (
-                      (publication.authorUsername ?? "Анонимен")
-                    )}
-                    {publication.emotion && (
-                      <span className="ml-1.5 font-normal text-[color:var(--color-text-muted)]">
-                        се чувства {publication.emotion} <strong>{publication.emotionText}</strong>
-                      </span>
-                    )}
-                  </p>
-                  <p className="truncate text-xs text-[color:var(--color-text-muted)]">
-                    {formatRelativeDate(publication.createdAt)}
-                    {publication.readingTime ? ` · ${publication.readingTime} мин. четене` : ""}
-                  </p>
-                </div>
+                {(() => {
+                  const authorBlock = (
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="relative shrink-0">
+                        {authorHref ? (
+                          <Link href={authorHref} onClick={onClose}>
+                            <Avatar
+                              username={publication.authorUsername ?? "?"}
+                              imageUrl={publication.authorImageUrl}
+                              size={44}
+                            />
+                          </Link>
+                        ) : (
+                          <Avatar
+                            username={publication.authorUsername ?? "?"}
+                            imageUrl={publication.authorImageUrl}
+                            size={44}
+                          />
+                        )}
+                        <OnlineStatusDot status={publication.authorOnlineStatus} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-[color:var(--color-text-primary)]">
+                          {authorHref ? (
+                            <Link
+                              href={authorHref}
+                              onClick={onClose}
+                              className="hover:text-primary hover:underline"
+                            >
+                              {publication.authorUsername}
+                            </Link>
+                          ) : (
+                            (publication.authorUsername ?? "Анонимен")
+                          )}
+                          {publication.emotion && (
+                            <span className="ml-1.5 font-normal text-[color:var(--color-text-muted)]">
+                              се чувства {publication.emotion}{" "}
+                              <strong>{publication.emotionText}</strong>
+                            </span>
+                          )}
+                        </p>
+                        <p className="truncate text-xs text-[color:var(--color-text-muted)]">
+                          {formatRelativeDate(publication.createdAt)}
+                          {publication.readingTime
+                            ? ` · ${publication.readingTime} мин. четене`
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                  return wrapAuthor ? wrapAuthor(publication, authorBlock) : authorBlock;
+                })()}
                 {followSlot?.(publication)}
                 <span className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] bg-[color:var(--color-surface-muted)] px-3 py-1 text-xs font-semibold text-[color:var(--color-text-secondary)]">
                   <i className={cn("bi", categoryIcon(publication.category))} />
@@ -200,10 +220,6 @@ export function PublicationDetailModal({
                   onDeleted={onClose}
                 />
               </div>
-
-              <p className="whitespace-pre-line text-[color:var(--color-text-secondary)]">
-                <PublicationText text={publication.content} onHashtagClick={onHashtagClick} />
-              </p>
 
               {publication.imageUrl && (
                 <button
@@ -220,6 +236,10 @@ export function PublicationDetailModal({
                 </button>
               )}
 
+              <p className="whitespace-pre-line text-[color:var(--color-text-secondary)]">
+                <PublicationText text={publication.content} onHashtagClick={onHashtagClick} />
+              </p>
+
               {linkMetadata && (
                 <LinkPreviewCard
                   metadata={linkMetadata}
@@ -227,12 +247,13 @@ export function PublicationDetailModal({
                 />
               )}
 
-              <div className="flex flex-wrap items-center gap-3 border-t border-border-default/60 pt-3 text-xs text-[color:var(--color-text-muted)]">
-                <span className="flex items-center gap-1">
+              <div className="flex w-full items-center justify-between border-t border-border-default/60 pt-3 text-xs text-[color:var(--color-text-muted)] lg:flex-wrap lg:justify-start lg:gap-x-3.5 lg:gap-y-2">
+                <span className="inline-flex items-center gap-0.5">
                   <button
                     type="button"
                     onClick={handleLike}
                     disabled={isLiking}
+                    aria-label="Харесване"
                     className={cn(
                       "transition-colors hover:text-primary disabled:opacity-50",
                       publication.isLiked && "text-primary",
@@ -240,25 +261,28 @@ export function PublicationDetailModal({
                   >
                     <i
                       className={cn(
-                        "bi",
+                        "bi text-sm",
                         publication.isLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up",
                       )}
+                      aria-hidden
                     />
                   </button>
                   <button
                     type="button"
                     onClick={() => publication.likesCount > 0 && setReactionModalType("like")}
                     disabled={publication.likesCount === 0}
-                    className="hover:underline disabled:no-underline"
+                    aria-label={`${publication.likesCount} харесвания`}
+                    className="tabular-nums hover:underline disabled:no-underline"
                   >
                     {publication.likesCount}
                   </button>
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="inline-flex items-center gap-0.5">
                   <button
                     type="button"
                     onClick={handleDislike}
                     disabled={isDisliking}
+                    aria-label="Не харесване"
                     className={cn(
                       "transition-colors hover:text-[color:var(--color-error)] disabled:opacity-50",
                       publication.isDisliked && "text-[color:var(--color-error)]",
@@ -266,46 +290,65 @@ export function PublicationDetailModal({
                   >
                     <i
                       className={cn(
-                        "bi",
+                        "bi text-sm",
                         publication.isDisliked ? "bi-hand-thumbs-down-fill" : "bi-hand-thumbs-down",
                       )}
+                      aria-hidden
                     />
                   </button>
                   <button
                     type="button"
                     onClick={() => publication.dislikesCount > 0 && setReactionModalType("dislike")}
                     disabled={publication.dislikesCount === 0}
-                    className="hover:underline disabled:no-underline"
+                    aria-label={`${publication.dislikesCount} нехаресвания`}
+                    className="tabular-nums hover:underline disabled:no-underline"
                   >
                     {publication.dislikesCount}
                   </button>
                 </span>
-                <span className="flex items-center gap-1">
-                  <i className="bi bi-chat-fill" />
-                  {publication.commentsCount}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setCommentsExpanded(true)}
+                  className="inline-flex items-center gap-0.5 transition-colors hover:text-primary lg:pointer-events-none"
+                  aria-label={`${publication.commentsCount} коментара`}
+                >
+                  <i className="bi bi-chat-fill text-sm" aria-hidden />
+                  <span className="tabular-nums">{publication.commentsCount}</span>
+                </button>
                 <PublicationShareSheet
                   title={publication.title}
                   url={shareUrl}
                   onShared={() => recordShare(publication.id)}
-                  className="flex items-center gap-1 transition-colors hover:text-primary"
-                />
+                  className="inline-flex items-center transition-colors hover:text-primary"
+                >
+                  <i className="bi bi-share text-sm" aria-hidden />
+                </PublicationShareSheet>
                 <button
                   type="button"
                   onClick={handleBookmark}
                   disabled={isBookmarking}
+                  aria-label={publication.isBookmarked ? "Премахни от запазени" : "Запази"}
                   className={cn(
-                    "flex items-center gap-1 transition-colors hover:text-primary disabled:opacity-50",
+                    "inline-flex items-center transition-colors hover:text-primary disabled:opacity-50",
                     publication.isBookmarked && "text-primary",
                   )}
                 >
-                  <i className={cn("bi", publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")} />
+                  <i
+                    className={cn(
+                      "bi text-sm",
+                      publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark",
+                    )}
+                    aria-hidden
+                  />
                 </button>
-                <span className="flex items-center gap-1">
-                  <i className="bi bi-eye-fill" />
-                  {publication.viewsCount}
+                <span
+                  className="inline-flex items-center gap-0.5"
+                  aria-label={`${publication.viewsCount} прегледа`}
+                >
+                  <i className="bi bi-eye-fill text-sm" aria-hidden />
+                  <span className="tabular-nums">{publication.viewsCount}</span>
                 </span>
-                <div className="ml-auto flex items-center gap-3">{reportSlot?.(publication)}</div>
+                <div className="flex items-center lg:ml-auto">{reportSlot?.(publication)}</div>
               </div>
                 </div>
               </div>
@@ -314,11 +357,54 @@ export function PublicationDetailModal({
             <div
               ref={commentsRef}
               className={cn(
-                "flex min-h-0 flex-col overflow-hidden bg-[color:var(--color-surface-light)]/50 p-4 sm:p-5 lg:h-full",
-                focusComments && "ring-2 ring-inset ring-primary/25",
+                "flex min-h-0 flex-col overflow-hidden border-t border-border-default/50 bg-white lg:static lg:h-full lg:border-t-0 lg:bg-[color:var(--color-surface-light)]/50",
+                // Mobile: expanded comments cover the whole modal body (under the shell title).
+                commentsExpanded && "max-lg:absolute max-lg:inset-0 max-lg:z-20 max-lg:border-t-0",
+                focusComments && commentsExpanded && "ring-2 ring-inset ring-primary/25",
               )}
             >
-              {commentsSlot?.(publication.id)}
+              {/* Mobile: single collapsible title. Desktop: static title (CommentsSection heading is hidden). */}
+              <button
+                type="button"
+                aria-expanded={commentsExpanded}
+                onClick={() => setCommentsExpanded((open) => !open)}
+                className="flex shrink-0 items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[color:var(--color-surface-muted)]/40 lg:hidden"
+              >
+                <span className="flex min-w-0 items-center gap-2 font-display text-base font-semibold text-[color:var(--color-text-heading)]">
+                  <i className="bi bi-chat-fill text-primary" aria-hidden />
+                  Коментари
+                  {publication.commentsCount > 0 ? (
+                    <span className="text-sm font-medium text-[color:var(--color-text-muted)]">
+                      ({publication.commentsCount})
+                    </span>
+                  ) : null}
+                </span>
+                <i
+                  className={cn(
+                    "bi shrink-0 text-[color:var(--color-text-muted)] transition-transform duration-200",
+                    commentsExpanded ? "bi-chevron-down" : "bi-chevron-up",
+                  )}
+                  aria-hidden
+                />
+              </button>
+              <div className="hidden shrink-0 items-center gap-2 px-4 pt-4 font-display text-base font-semibold text-[color:var(--color-text-heading)] lg:flex sm:px-5 sm:pt-5">
+                <i className="bi bi-chat-fill text-primary" aria-hidden />
+                Коментари
+                {publication.commentsCount > 0 ? (
+                  <span className="text-sm font-medium text-[color:var(--color-text-muted)]">
+                    ({publication.commentsCount})
+                  </span>
+                ) : null}
+              </div>
+
+              <div
+                className={cn(
+                  "flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 sm:px-5 sm:pb-5 lg:pt-3",
+                  !commentsExpanded && "hidden lg:flex",
+                )}
+              >
+                {commentsSlot?.(publication.id, publication.commentsCount)}
+              </div>
             </div>
           </div>
         )}

@@ -53,6 +53,7 @@ export function PublicationShareSheet({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        aria-label="Сподели"
         className={
           className ??
           "inline-flex items-center gap-1.5 text-sm text-[color:var(--color-text-muted)] hover:text-primary"
@@ -60,8 +61,8 @@ export function PublicationShareSheet({
       >
         {children ?? (
           <>
-            <i className="bi bi-share" />
-            Сподели
+            <i className="bi bi-share text-sm" aria-hidden />
+            <span>Сподели</span>
           </>
         )}
       </button>

@@ -12,10 +12,15 @@ import { useToggleFollow } from "../hooks/useToggleFollow";
 interface FollowButtonProps {
   userId: number;
   className?: string;
+  /**
+   * When already following, show a non-interactive "Последван" label
+   * (for dense cards). Default keeps a toggle button so users can unfollow.
+   */
+  staticWhenFollowing?: boolean;
 }
 
 /** Caller decides visibility (hide for guests / for the viewer's own content) — this button only handles the toggle itself. */
-export function FollowButton({ userId, className }: FollowButtonProps) {
+export function FollowButton({ userId, className, staticWhenFollowing = false }: FollowButtonProps) {
   const { isAuthenticated } = useAuth();
   const requireAuth = useRequireAuth();
   const canInteract = useCanInteract();
@@ -35,6 +40,21 @@ export function FollowButton({ userId, className }: FollowButtonProps) {
     });
   }
 
+  if (staticWhenFollowing && isFollowing) {
+    return (
+      <span
+        className={
+          className ??
+          "inline-flex items-center gap-1 text-xs font-medium text-[color:var(--color-text-muted)]"
+        }
+        title="Следвате този потребител"
+      >
+        <i className="bi bi-person-check-fill" aria-hidden />
+        Последван
+      </span>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -51,8 +71,8 @@ export function FollowButton({ userId, className }: FollowButtonProps) {
         )
       }
     >
-      <i className={cn("bi", isFollowing ? "bi-person-check-fill" : "bi-person-plus")} />
-      {isFollowing ? "Следваш" : "Следвай"}
+      <i className={cn("bi", isFollowing ? "bi-person-check-fill" : "bi-person-plus")} aria-hidden />
+      {isFollowing ? "Последван" : "Следвай"}
     </button>
   );
 }

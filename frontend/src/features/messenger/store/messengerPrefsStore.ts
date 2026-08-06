@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
+import { createSafeJsonStorage } from "../lib/safePersistStorage";
 
 export type MessengerDensity = "compact" | "comfortable" | "spacious";
 export type MessengerSoundTheme = "subtle" | "classic" | "off";
@@ -32,7 +33,7 @@ export const useMessengerPrefsStore = create<MessengerPrefsState>()(
     }),
     {
       name: "svmessenger-prefs",
-      storage: createJSONStorage(() => localStorage),
+      storage: createSafeJsonStorage(),
       version: 2,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Record<string, unknown>;

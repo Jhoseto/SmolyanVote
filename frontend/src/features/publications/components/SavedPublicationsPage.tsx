@@ -15,8 +15,10 @@ import type { Publication } from "../types";
 interface SavedPublicationsPageProps {
   renderFollowSlot?: (publication: Publication) => ReactNode;
   renderReportSlot?: (publication: Publication) => ReactNode;
-  renderCommentsSlot?: (id: number) => ReactNode;
+  renderCommentsSlot?: (id: number, totalComments: number) => ReactNode;
   renderAuthorFollowSlot?: (userId: number) => ReactNode;
+  renderAuthorMessageSlot?: (userId: number) => ReactNode;
+  wrapAuthor?: (publication: Publication, children: ReactNode) => ReactNode;
 }
 
 export function SavedPublicationsPage({
@@ -24,6 +26,8 @@ export function SavedPublicationsPage({
   renderReportSlot,
   renderCommentsSlot,
   renderAuthorFollowSlot,
+  renderAuthorMessageSlot,
+  wrapAuthor,
 }: SavedPublicationsPageProps = {}) {
   const { isAuthenticated, isHydrated } = useAuth();
   const openAuth = useLoginGateStore((s) => s.open);
@@ -104,6 +108,8 @@ export function SavedPublicationsPage({
               followSlot={renderFollowSlot?.(publication)}
               reportSlot={renderReportSlot?.(publication)}
               reactionUserFollowSlot={renderAuthorFollowSlot}
+              reactionUserMessageSlot={renderAuthorMessageSlot}
+              wrapAuthor={wrapAuthor ? (children) => wrapAuthor(publication, children) : undefined}
             />
           ))}
           <div ref={sentinelRef} className="flex justify-center py-4">
@@ -120,6 +126,8 @@ export function SavedPublicationsPage({
         reportSlot={renderReportSlot}
         commentsSlot={renderCommentsSlot}
         reactionUserFollowSlot={renderAuthorFollowSlot}
+        reactionUserMessageSlot={renderAuthorMessageSlot}
+        wrapAuthor={wrapAuthor}
       />
     </Container>
   );

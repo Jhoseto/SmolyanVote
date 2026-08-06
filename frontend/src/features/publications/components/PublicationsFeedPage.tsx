@@ -27,9 +27,10 @@ import type { Publication } from "../types";
 interface PublicationsFeedPageProps {
   renderFollowSlot?: (publication: Publication) => ReactNode;
   renderReportSlot?: (publication: Publication) => ReactNode;
-  renderCommentsSlot?: (id: number) => ReactNode;
+  renderCommentsSlot?: (id: number, totalComments: number) => ReactNode;
   renderAuthorFollowSlot?: (userId: number) => ReactNode;
   renderAuthorMessageSlot?: (userId: number) => ReactNode;
+  wrapAuthor?: (publication: Publication, children: ReactNode) => ReactNode;
 }
 
 /** Side rails stay pinned; only the center feed scrolls with the page. */
@@ -42,6 +43,7 @@ export function PublicationsFeedPage({
   renderCommentsSlot,
   renderAuthorFollowSlot,
   renderAuthorMessageSlot,
+  wrapAuthor,
 }: PublicationsFeedPageProps = {}) {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
@@ -257,6 +259,9 @@ export function PublicationsFeedPage({
                   reportSlot={renderReportSlot?.(publication)}
                   reactionUserFollowSlot={renderAuthorFollowSlot}
                   reactionUserMessageSlot={renderAuthorMessageSlot}
+                  wrapAuthor={
+                    wrapAuthor ? (children) => wrapAuthor(publication, children) : undefined
+                  }
                 />
               ))}
             </div>
@@ -286,6 +291,7 @@ export function PublicationsFeedPage({
         commentsSlot={renderCommentsSlot}
         reactionUserFollowSlot={renderAuthorFollowSlot}
         reactionUserMessageSlot={renderAuthorMessageSlot}
+        wrapAuthor={wrapAuthor}
         onHashtagClick={(tag) => {
           closeDetail();
           setFilters({ search: tag, feed: "all", author: null });

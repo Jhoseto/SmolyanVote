@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { EmojiPicker } from "frimousse";
-import { LogoLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
@@ -18,6 +16,7 @@ import { MESSAGE_MAX_LENGTH, type Message } from "../types";
 import { MentionAutocomplete, mentionQueryAt } from "./MentionAutocomplete";
 import { PollComposer } from "./PollComposer";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { MessengerEmojiPicker } from "./MessengerEmojiPicker";
 
 /** Roughly five lines at the composer's font size. */
 const INPUT_MAX_H = 108;
@@ -183,29 +182,12 @@ export function MessageInput({
       </AnimatePresence>
 
       {emojiOpen && (
-        <div className="sv-msg-tile mb-1.5 h-48 overflow-hidden rounded-[8px] bg-white">
-          <EmojiPicker.Root
-            className="flex h-full flex-col"
-            onEmojiSelect={({ emoji }) => {
-              setText((t) => (t + emoji).slice(0, MESSAGE_MAX_LENGTH));
-              onInputActivity();
-            }}
-          >
-            <EmojiPicker.Search
-              placeholder="Търси емоджи…"
-              className="border-b border-border-default/60 px-3 py-2 text-sm outline-none"
-            />
-            <EmojiPicker.Viewport className="relative min-h-0 flex-1 overflow-y-auto">
-              <EmojiPicker.Loading className="flex justify-center p-3">
-                <LogoLoader size="sm" label="Зареждане…" />
-              </EmojiPicker.Loading>
-              <EmojiPicker.Empty className="p-3 text-center text-xs text-[color:var(--color-text-muted)]">
-                Няма резултати
-              </EmojiPicker.Empty>
-              <EmojiPicker.List className="select-none pb-2" />
-            </EmojiPicker.Viewport>
-          </EmojiPicker.Root>
-        </div>
+        <MessengerEmojiPicker
+          onSelect={(emoji) => {
+            setText((t) => (t + emoji).slice(0, MESSAGE_MAX_LENGTH));
+            onInputActivity();
+          }}
+        />
       )}
 
       <div className="flex items-end gap-1.5">

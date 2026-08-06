@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 import { Dialog } from "@base-ui/react/dialog";
@@ -56,7 +56,8 @@ export function SocialModalShell({
         />
         <Dialog.Popup
           className={cn(
-            "fixed inset-0 flex items-start justify-center overflow-y-auto p-3 outline-none sm:items-center sm:p-4",
+            "fixed inset-0 flex items-start justify-center p-3 outline-none sm:items-center sm:p-4",
+            bodyScroll === "hidden" ? "overflow-hidden" : "overflow-y-auto",
             zPopup,
           )}
         >

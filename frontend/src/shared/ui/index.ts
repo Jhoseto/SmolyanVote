@@ -11,6 +11,7 @@ export { LogoLoader } from "./LogoLoader";
 export { EmptyState } from "./EmptyState";
 export { ErrorState } from "./ErrorState";
 export { Avatar } from "./Avatar";
+export { HoverCard } from "./HoverCard";
 export { BackToTop } from "./BackToTop";
 export { ParticlesBackground, type ParticlesTheme } from "./ParticlesBackground";
 export { HeartbeatBeacon } from "./HeartbeatBeacon";

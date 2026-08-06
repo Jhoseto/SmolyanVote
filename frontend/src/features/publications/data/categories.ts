@@ -7,7 +7,7 @@ export const CATEGORIES: { value: PublicationCategory; label: string; icon: stri
   { value: "MUNICIPAL", label: "Община", icon: "bi-building" },
   { value: "INITIATIVES", label: "Граждански инициативи", icon: "bi-lightbulb" },
   { value: "CULTURE", label: "Културни събития", icon: "bi-palette" },
-  { value: "OTHER", label: "Други", icon: "bi-three-dots" },
+  { value: "OTHER", label: "Други", icon: "bi-grid" },
 ];
 
 export function categoryLabel(value: PublicationCategory | null | undefined): string {

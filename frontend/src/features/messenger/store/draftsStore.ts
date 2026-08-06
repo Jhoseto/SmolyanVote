@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
+import { createSafeJsonStorage } from "../lib/safePersistStorage";
 
 interface DraftsState {
   /** conversationId → unsent text */
@@ -33,7 +34,7 @@ export const useDraftsStore = create<DraftsState>()(
     }),
     {
       name: "svmessenger-drafts",
-      storage: createJSONStorage(() => localStorage),
+      storage: createSafeJsonStorage(),
       version: 1,
     },
   ),

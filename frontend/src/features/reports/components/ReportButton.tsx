@@ -15,10 +15,12 @@ interface ReportButtonProps {
   entityType: ReportableEntityType;
   entityId: number;
   className?: string;
+  /** Icon only (aria-label kept) — for dense action rows. */
+  iconOnly?: boolean;
 }
 
 /** Self-contained "Докладвай" trigger + modal — reused across events, publications, signals, comments. */
-export function ReportButton({ entityType, entityId, className }: ReportButtonProps) {
+export function ReportButton({ entityType, entityId, className, iconOnly = false }: ReportButtonProps) {
   const toast = useToast();
   const requireAuth = useRequireAuth();
   const { mutate, isPending } = useCreateReport(entityType, entityId);
@@ -53,10 +55,14 @@ export function ReportButton({ entityType, entityId, className }: ReportButtonPr
       <button
         type="button"
         onClick={handleTrigger}
-        className={className ?? "inline-flex items-center gap-1.5 text-sm text-[color:var(--color-text-muted)] hover:text-[color:var(--color-error)]"}
+        aria-label="Докладвай"
+        className={
+          className ??
+          "inline-flex items-center gap-1.5 text-sm text-[color:var(--color-text-muted)] hover:text-[color:var(--color-error)]"
+        }
       >
-        <i className="bi bi-flag" />
-        Докладвай
+        <i className="bi bi-flag text-sm" aria-hidden />
+        {!iconOnly ? <span>Докладвай</span> : null}
       </button>
 
       <Dialog.Portal>

@@ -7,7 +7,7 @@ import { cn } from "@/shared/lib/cn";
 import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
-import { isEmojiOnly, linkifyText } from "../lib/linkify";
+import { getEmojiOnlyMeta, linkifyText, splitEmojiGraphemes } from "../lib/linkify";
 import { findSharedEntity } from "../lib/resolveSharedEntity";
 import { formatClock } from "../lib/presence";
 import { messengerApi } from "../api";
@@ -138,7 +138,10 @@ function MessageBubbleImpl({
 
   const hasAttachment = Boolean(message.attachmentUrl || message.localPreviewUrl);
   const sourceText = e2eLocked ? "" : decryptedText;
-  const emojiOnly = !hasAttachment && !message.poll && isEmojiOnly(sourceText);
+  const emojiMeta = getEmojiOnlyMeta(sourceText);
+  const emojiOnly = !hasAttachment && !message.poll && emojiMeta.isEmojiOnly;
+  const singleEmoji = emojiOnly && emojiMeta.count === 1;
+  const emojiGraphemes = emojiOnly ? splitEmojiGraphemes(sourceText) : [];
   const displayText = translated ?? sourceText;
   const pending = message.sendState === "pending";
   const reactions = message.reactions ?? [];
@@ -252,11 +255,10 @@ function MessageBubbleImpl({
       className={cn(
         "sv-msg-body relative px-3 py-1.5",
         radiusFor(isOwn, groupPosition),
-        emojiOnly
-          ? "bg-transparent px-1 py-0 text-4xl shadow-none"
-          : isOwn
-            ? "sv-msg-bubble-own"
-            : "sv-msg-bubble-peer",
+        emojiOnly && singleEmoji && "sv-msg-emoji-single bg-transparent px-0.5 py-0 shadow-none",
+        emojiOnly && !singleEmoji && "sv-msg-emoji-multi bg-transparent px-1 py-0 shadow-none",
+        !emojiOnly &&
+          (isOwn ? "sv-msg-bubble-own" : "sv-msg-bubble-peer"),
         pending && "sv-msg-bubble-pending",
         highlighted && "sv-msg-flash",
       )}
@@ -343,7 +345,20 @@ function MessageBubbleImpl({
                     : linkifyText(displayText)}
             </p>
           )}
-          {emojiOnly && <p>{sourceText}</p>}
+          {emojiOnly && singleEmoji && (
+            <span className="sv-msg-emoji-content sv-msg-emoji-content--single">
+              {emojiGraphemes[0] ?? sourceText.trim()}
+            </span>
+          )}
+          {emojiOnly && !singleEmoji && (
+            <span className="sv-msg-emoji-content sv-msg-emoji-content--multi">
+              {emojiGraphemes.map((glyph, index) => (
+                <span key={`${glyph}-${index}`} className="sv-msg-emoji-glyph">
+                  {glyph}
+                </span>
+              ))}
+            </span>
+          )}
           {sharedEntity ? (
             <div className="mt-1.5">
               <SharedEntityCard entity={sharedEntity} isOwn={isOwn} />
