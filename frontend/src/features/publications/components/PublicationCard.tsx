@@ -223,19 +223,19 @@ export function PublicationCard({
           </span>
         </div>
 
-        <div className="mt-2 flex w-full items-center justify-between border-t border-border-default/50 px-2 py-1.5 sm:gap-1 sm:px-1 sm:py-1">
+        <div className="mt-2 flex w-full items-center justify-evenly gap-0.5 border-t border-border-default/50 px-1 py-1.5 sm:py-2">
           <button
             type="button"
             onClick={handleLike}
             disabled={isLiking}
             aria-label="Харесвам"
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
+              "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-1.5 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
               publication.isLiked ? "text-primary" : "text-[color:var(--color-text-secondary)]",
             )}
           >
             <i
-              className={cn("bi text-base", publication.isLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up")}
+              className={cn("bi shrink-0 text-base", publication.isLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up")}
               aria-hidden
             />
             <span className="hidden md:inline">Харесвам</span>
@@ -246,7 +246,7 @@ export function PublicationCard({
             disabled={isDisliking}
             aria-label="Не харесвам"
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
+              "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-1.5 py-2 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
               publication.isDisliked
                 ? "text-[color:var(--color-error)]"
                 : "text-[color:var(--color-text-secondary)]",
@@ -254,7 +254,7 @@ export function PublicationCard({
           >
             <i
               className={cn(
-                "bi text-base",
+                "bi shrink-0 text-base",
                 publication.isDisliked ? "bi-hand-thumbs-down-fill" : "bi-hand-thumbs-down",
               )}
               aria-hidden
@@ -265,18 +265,18 @@ export function PublicationCard({
             type="button"
             onClick={() => onOpenDetail?.(publication.id, { focusComments: true })}
             aria-label="Коментирай"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
+            className="flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-1.5 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
           >
-            <i className="bi bi-chat-fill text-base" aria-hidden />
+            <i className="bi bi-chat-fill shrink-0 text-base" aria-hidden />
             <span className="hidden md:inline">Коментирай</span>
           </button>
           <PublicationShareSheet
             title={publication.title}
             url={shareUrl}
             onShared={() => recordShare(publication.id)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
+            className="flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-1.5 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary sm:px-2 sm:py-2.5"
           >
-            <i className="bi bi-share text-base" aria-hidden />
+            <i className="bi bi-share shrink-0 text-base" aria-hidden />
             <span className="hidden md:inline">Сподели</span>
           </PublicationShareSheet>
           <button
@@ -285,17 +285,17 @@ export function PublicationCard({
             disabled={isBookmarking}
             aria-label={publication.isBookmarked ? "Премахни от запазени" : "Запази"}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
+              "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-1.5 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50 sm:px-2 sm:py-2.5",
               publication.isBookmarked ? "text-primary" : "text-[color:var(--color-text-secondary)]",
             )}
           >
             <i
-              className={cn("bi text-base", publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")}
+              className={cn("bi shrink-0 text-base", publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")}
               aria-hidden
             />
             <span className="hidden md:inline">Запази</span>
           </button>
-          <div className="flex flex-1 items-center justify-center">{reportSlot}</div>
+          <div className="flex shrink-0 items-center justify-center">{reportSlot}</div>
         </div>
       </Card>
 
