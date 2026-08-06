@@ -28,6 +28,7 @@ import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.support.ReputationCounterService;
 import smolyanVote.smolyanVote.services.mappers.SignalsMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.SignalEnrichment;
@@ -55,6 +56,7 @@ public class SignalsServiceImpl implements SignalsService {
     private final SignalSubscriptionRepository subscriptionRepository;
     private final SignalResolvedReportRepository resolvedReportRepository;
     private final NotificationService notificationService;
+    private final ReputationCounterService reputationCounterService;
 
     private static final int RESOLVED_REPORT_ESCALATION_THRESHOLD = 2;
 
@@ -68,7 +70,8 @@ public class SignalsServiceImpl implements SignalsService {
                               UserRepository userRepository,
                               SignalSubscriptionRepository subscriptionRepository,
                               SignalResolvedReportRepository resolvedReportRepository,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              ReputationCounterService reputationCounterService) {
         this.signalsRepository = signalsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
         this.userService = userService;
@@ -79,6 +82,7 @@ public class SignalsServiceImpl implements SignalsService {
         this.subscriptionRepository = subscriptionRepository;
         this.resolvedReportRepository = resolvedReportRepository;
         this.notificationService = notificationService;
+        this.reputationCounterService = reputationCounterService;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -259,10 +263,11 @@ public class SignalsServiceImpl implements SignalsService {
     @Transactional
     public void delete(Long id) {
         try {
+            List<CommentsEntity> comments = commentsRepository.findBySignal_Id(id);
+            reputationCounterService.onCommentsRemoved(comments);
+
             // ПЪРВО ИЗТРИВАМЕ COMMENT VOTES
             try {
-                List<CommentsEntity> comments = commentsRepository.findBySignalId(id);
-
                 for (CommentsEntity comment : comments) {
                     // Изтриваме всички votes за този коментар
                     commentVoteRepository.deleteAllByCommentId(comment.getId());

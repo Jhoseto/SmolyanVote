@@ -22,6 +22,8 @@ public interface VoteSimpleEventRepository extends JpaRepository<VoteSimpleEvent
 
     Optional<VoteSimpleEventEntity> findByUserIdAndEventId(Long userId, Long eventId);
 
+    List<VoteSimpleEventEntity> findByEvent_Id(Long eventId);
+
     @Query("SELECT v.event.id FROM VoteSimpleEventEntity v WHERE v.user.id = :userId")
     List<Long> findVotedEventIdsByUserId(@Param("userId") Long userId);
 

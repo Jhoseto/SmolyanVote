@@ -22,6 +22,7 @@ import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.ContentModerationService;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.UserBanService;
+import smolyanVote.smolyanVote.services.support.ReputationCounterService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.CommentResultMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.CommentOutputDto;
@@ -52,6 +53,7 @@ public class CommentsServiceImpl implements CommentsService {
     private final ActivityLogService activityLogService;
     private final ContentModerationService contentModerationService;
     private final UserBanService userBanService;
+    private final ReputationCounterService reputationCounterService;
 
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
@@ -67,7 +69,8 @@ public class CommentsServiceImpl implements CommentsService {
                                NotificationService notificationService,
                                UserRepository userRepository,
                                ContentModerationService contentModerationService,
-                               UserBanService userBanService) {
+                               UserBanService userBanService,
+                               ReputationCounterService reputationCounterService) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
@@ -82,6 +85,7 @@ public class CommentsServiceImpl implements CommentsService {
         this.userRepository = userRepository;
         this.contentModerationService = contentModerationService;
         this.userBanService = userBanService;
+        this.reputationCounterService = reputationCounterService;
     }
 
     // ====== ОСНОВНИ МЕТОДИ ======
@@ -241,6 +245,7 @@ public class CommentsServiceImpl implements CommentsService {
         publicationRepository.save(publication);
 
         logger.info("Comment added to publication {}, new count: {}", publicationId, publication.getCommentsCount());
+        reputationCounterService.incrementComments(author);
         // Notify publication author
         try {
             UserEntity contentAuthor = publication.getAuthor();
@@ -270,6 +275,7 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setEdited(false);
 
         CommentsEntity saved = commentsRepository.save(comment);
+        reputationCounterService.incrementComments(author);
         // Notify simple event creator
         try {
             String creatorName = simpleEvent.getCreatorName();
@@ -301,6 +307,7 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setEdited(false);
 
         CommentsEntity saved = commentsRepository.save(comment);
+        reputationCounterService.incrementComments(author);
         // Notify referendum creator
         try {
             String creatorName = referendum.getCreatorName();
@@ -332,6 +339,7 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setEdited(false);
 
         CommentsEntity saved = commentsRepository.save(comment);
+        reputationCounterService.incrementComments(author);
         // Notify multipoll creator
         try {
             String creatorName = multiPoll.getCreatorName();
@@ -368,6 +376,7 @@ public class CommentsServiceImpl implements CommentsService {
         // После инкрементираме брояча (като при публикациите)
         signal.setCommentsCount(signal.getCommentsCount() +1);
         signalsRepository.save(signal);
+        reputationCounterService.incrementComments(author);
 
         // Notify signal author
         try {
@@ -439,6 +448,8 @@ public class CommentsServiceImpl implements CommentsService {
             signalsRepository.save(signal);
         }
 
+        reputationCounterService.incrementComments(author);
+
         return savedReply;
     }
 
@@ -496,21 +507,22 @@ public class CommentsServiceImpl implements CommentsService {
                 : comment.getText();
 
         // ✅ ПОПРАВКА: Броим ВСИЧКИ коментари които ще се изтрият
-        int totalCommentsToDelete = countCommentsToDelete(comment);
+        List<CommentsEntity> commentsToRemove = collectCommentsForDeletion(comment);
+        reputationCounterService.onCommentsRemoved(commentsToRemove);
 
         // Декрементираме общата бройка
         if (comment.getPublication() != null) {
             PublicationEntity publication = comment.getPublication();
 
             // Декрементираме с общия брой коментари които ще се изтрият
-            for (int i = 0; i < totalCommentsToDelete; i++) {
+            for (int i = 0; i < commentsToRemove.size(); i++) {
                 publication.decrementComments();
             }
             publicationRepository.save(publication);
 
         } else if (comment.getSignal() != null) {  // ДОБАВИ ТАЗИ ЧАСТ
             SignalsEntity signal = comment.getSignal();
-            for (int i = 0; i < totalCommentsToDelete; i++) {
+            for (int i = 0; i < commentsToRemove.size(); i++) {
                 signal.setCommentsCount(signal.getCommentsCount() -1);
             }
             signalsRepository.save(signal);
@@ -755,21 +767,24 @@ public class CommentsServiceImpl implements CommentsService {
                 user.getRole().equals(UserRole.ADMIN);
     }
 
+    private List<CommentsEntity> collectCommentsForDeletion(CommentsEntity root) {
+        List<CommentsEntity> all = new ArrayList<>();
+        collectCommentSubtree(root, all);
+        return all;
+    }
+
+    private void collectCommentSubtree(CommentsEntity node, List<CommentsEntity> out) {
+        out.add(node);
+        for (CommentsEntity reply : commentsRepository.findByParent_Id(node.getId())) {
+            collectCommentSubtree(reply, out);
+        }
+    }
+
     /**
      * ✅ НОВА ПОПРАВКА: Брои колко общо коментари ще се изтрият (главен + всички подкоментари)
      */
     private int countCommentsToDelete(CommentsEntity comment) {
-        int count = 1; // Самия коментар
-
-        // Ако това е главен коментар, добавяме и всичките му отговори
-        if (comment.getParent() == null) {
-            long repliesCount = commentsRepository.countRepliesByParentId(comment.getId());
-            count += (int) repliesCount;
-            logger.debug("Comment {} has {} replies, total to delete: {}",
-                    comment.getId(), repliesCount, count);
-        }
-
-        return count;
+        return collectCommentsForDeletion(comment).size();
     }
 
     /**

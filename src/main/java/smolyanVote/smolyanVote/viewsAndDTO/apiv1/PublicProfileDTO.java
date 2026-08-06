@@ -16,7 +16,7 @@ public record PublicProfileDTO(
         Long id, String username, String realName, String imageUrl, String bio,
         String location, String locationLabel, String role,
         Instant created, Instant lastOnline, boolean online,
-        int eventsCount, int publicationsCount, int signalsCount,
+        int eventsCount, int publicationsCount, int signalsCount, int votesCount, int commentsCount,
         long followersCount, long followingCount,
         boolean isFollowing, boolean isOwnProfile,
         int reputationScore, String reputationBadge) {
@@ -31,9 +31,10 @@ public record PublicProfileDTO(
                 user.getLocation() != null ? user.getLocation().toBG() : null,
                 user.getRole().name(),
                 user.getCreated(), user.getLastOnline(), user.getOnlineStatus() != 0,
-                user.getUserEventsCount(), user.getPublicationsCount(), user.getSignalsCount(),
+                user.getUserEventsCount(), user.getPublicationsCount(), user.getSignalsCount(), user.getTotalVotes(),
+                user.getCommentsCount(),
                 followersCount, followingCount,
                 isFollowing, isOwnProfile,
-                reputationScore, ReputationCalculator.badge(reputationScore));
+                reputationScore, ReputationCalculator.badge(user));
     }
 }

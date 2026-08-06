@@ -17,6 +17,7 @@ import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.MultiPollImageRepository;
 import smolyanVote.smolyanVote.repositories.VoteMultiPollRepository;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.support.ReputationCounterService;
 import smolyanVote.smolyanVote.services.mappers.MultiPollMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateMultiPollView;
 import smolyanVote.smolyanVote.services.interfaces.MultiPollService;
@@ -35,6 +36,7 @@ public class MultiPollServiceImpl implements MultiPollService {
     private final ImageCloudinaryServiceImpl imageCloudinaryService;
     private final MultiPollMapper multiPollMapper;
     private final VoteMultiPollRepository voteMultiPollRepository;
+    private final ReputationCounterService reputationCounterService;
 
     @Autowired
     public MultiPollServiceImpl(MultiPollRepository multiPollRepository,
@@ -42,13 +44,15 @@ public class MultiPollServiceImpl implements MultiPollService {
                                 UserService userService,
                                 ImageCloudinaryServiceImpl imageCloudinaryService,
                                 MultiPollMapper multiPollMapper,
-                                VoteMultiPollRepository voteMultiPollRepository) {
+                                VoteMultiPollRepository voteMultiPollRepository,
+                                ReputationCounterService reputationCounterService) {
         this.multiPollRepository = multiPollRepository;
         this.imageRepository = imageRepository;
         this.userService = userService;
         this.imageCloudinaryService = imageCloudinaryService;
         this.multiPollMapper = multiPollMapper;
         this.voteMultiPollRepository = voteMultiPollRepository;
+        this.reputationCounterService = reputationCounterService;
     }
 
     @Transactional
@@ -102,6 +106,8 @@ public class MultiPollServiceImpl implements MultiPollService {
         imageRepository.saveAll(imageEntities);
         savedPoll.setImages(imageEntities);
         multiPollRepository.save(savedPoll);
+
+        reputationCounterService.incrementUserEvents(currentUser);
 
         return savedPoll.getId();
     }

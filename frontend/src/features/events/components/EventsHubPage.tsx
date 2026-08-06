@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Container, EmptyState, ErrorState, LogoLoader } from "@/shared/ui";
 import { useAuth } from "@/shared/lib/authContext";
 import { useEventsFilters } from "../hooks/useEventsFilters";
@@ -15,6 +15,8 @@ export function EventsHubPage() {
   const { isAuthenticated, user } = useAuth();
   const [filters, setFilters] = useEventsFilters();
   const { data, isPending, isError, refetch } = useEventsCatalog();
+  const eventsListRef = useRef<HTMLDivElement>(null);
+  const skipPageScrollRef = useRef(true);
 
   const page = useMemo(() => {
     if (!data) return null;
@@ -44,6 +46,14 @@ export function EventsHubPage() {
       void setFilters({ page: page.page });
     }
   }, [page, filters.page, setFilters]);
+
+  useEffect(() => {
+    if (skipPageScrollRef.current) {
+      skipPageScrollRef.current = false;
+      return;
+    }
+    eventsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [filters.page]);
 
   return (
     <>
@@ -130,7 +140,11 @@ export function EventsHubPage() {
         )}
 
         {page && page.totalElements > 0 && (
-          <div className="flex flex-col gap-5">
+          <div
+            ref={eventsListRef}
+            id="events-list"
+            className="flex scroll-mt-[calc(var(--navbar-height)+20px)] flex-col gap-5"
+          >
             <p className="text-sm text-[color:var(--color-text-muted)]">
               Намерени {page.totalElements} {page.totalElements === 1 ? "събитие" : "събития"}
             </p>

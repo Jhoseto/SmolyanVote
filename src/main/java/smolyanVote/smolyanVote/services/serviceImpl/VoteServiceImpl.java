@@ -291,6 +291,9 @@ public class VoteServiceImpl implements VoteService {
             voteIpRepository.save(voteIp);
         }
 
+        user.setTotalVotes(user.getTotalVotes() + 1);
+        userRepository.save(user);
+
         UserEntity creator = userRepository.findByUsername(poll.getCreatorName())
                 .orElse(null);
         if (creator != null) {

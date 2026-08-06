@@ -20,6 +20,8 @@ public interface VoteReferendumRepository extends JpaRepository<VoteReferendumEn
 
     Optional<VoteReferendumEntity> findByReferendum_IdAndUser_Id(Long referendumId, Long userId);
 
+    List<VoteReferendumEntity> findByReferendum_Id(Long referendumId);
+
     @Query("SELECT v.referendum.id FROM VoteReferendumEntity v WHERE v.user.id = :userId")
     List<Long> findVotedReferendumIdsByUserId(@Param("userId") Long userId);
 

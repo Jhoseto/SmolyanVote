@@ -162,7 +162,7 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                 href="/profile"
                 aria-label="Моят профил"
                 onClick={() => hapticTap()}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-1 ring-black/[0.08] transition-colors hover:ring-black/[0.14]"
               >
                 <Avatar username={user.username} imageUrl={user.imageUrl} size={32} />
               </Link>

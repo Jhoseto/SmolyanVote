@@ -347,5 +347,15 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
 
     List<CommentsEntity> findByPublicationId(Long id);
 
+    List<CommentsEntity> findByEvent_Id(Long eventId);
+
+    List<CommentsEntity> findByReferendum_Id(Long referendumId);
+
+    List<CommentsEntity> findByMultiPoll_Id(Long multiPollId);
+
+    List<CommentsEntity> findBySignal_Id(Long signalId);
+
+    List<CommentsEntity> findByParent_Id(Long parentId);
+
     List<CommentsEntity> findBySignalId(Long id);
 }

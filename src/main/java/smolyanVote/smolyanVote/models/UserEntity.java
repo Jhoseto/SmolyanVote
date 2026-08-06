@@ -84,6 +84,7 @@ public class UserEntity extends BaseEntity {
 
     private int publicationsCount;
     private int signalsCount;
+    private int commentsCount;
 
     // ===== GETTERS AND SETTERS =====
 
@@ -281,6 +282,14 @@ public class UserEntity extends BaseEntity {
 
     public void setSignalsCount(int signalsCount) {
         this.signalsCount = signalsCount;
+    }
+
+    public int getCommentsCount() {
+        return commentsCount;
+    }
+
+    public void setCommentsCount(int commentsCount) {
+        this.commentsCount = commentsCount;
     }
 
     public int getFailedLoginAttempts() {

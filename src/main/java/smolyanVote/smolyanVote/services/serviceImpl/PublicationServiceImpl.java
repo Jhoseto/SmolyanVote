@@ -17,6 +17,7 @@ import smolyanVote.smolyanVote.exceptions.ModerationViolationException;
 import smolyanVote.smolyanVote.services.interfaces.ContentModerationService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserBanService;
+import smolyanVote.smolyanVote.services.support.ReputationCounterService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.PublicationMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
@@ -47,6 +48,7 @@ public class PublicationServiceImpl implements PublicationService {
     private final NotificationService notificationService;
     private final ContentModerationService contentModerationService;
     private final UserBanService userBanService;
+    private final ReputationCounterService reputationCounterService;
 
     public PublicationServiceImpl(PublicationRepository publicationRepository,
                                   UserService userService,
@@ -59,7 +61,8 @@ public class PublicationServiceImpl implements PublicationService {
                                   ActivityLogService activityLogService,
                                   NotificationService notificationService,
                                   ContentModerationService contentModerationService,
-                                  UserBanService userBanService) {
+                                  UserBanService userBanService,
+                                  ReputationCounterService reputationCounterService) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
@@ -72,6 +75,7 @@ public class PublicationServiceImpl implements PublicationService {
         this.notificationService = notificationService;
         this.contentModerationService = contentModerationService;
         this.userBanService = userBanService;
+        this.reputationCounterService = reputationCounterService;
     }
 
 
@@ -291,6 +295,7 @@ public class PublicationServiceImpl implements PublicationService {
             try {
                 // Първо изтриваме comment votes
                 List<CommentsEntity> comments = commentsRepository.findByPublicationId(id);
+                reputationCounterService.onCommentsRemoved(comments);
 
                 for (CommentsEntity comment : comments) {
                     // Изтриваме всички votes за този коментар

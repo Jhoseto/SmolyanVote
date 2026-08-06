@@ -20,6 +20,8 @@ public interface VoteMultiPollRepository extends JpaRepository<VoteMultiPollEnti
 
     List<VoteMultiPollEntity> findAllByMultiPoll_IdAndUser_Id(Long multiPollId, Long userId);
 
+    List<VoteMultiPollEntity> findByMultiPoll_Id(Long multiPollId);
+
     boolean existsByMultiPollIdAndUserId(Long multiPollId, Long userId);
 
     @Query("SELECT DISTINCT v.multiPoll.id FROM VoteMultiPollEntity v WHERE v.user.id = :userId")

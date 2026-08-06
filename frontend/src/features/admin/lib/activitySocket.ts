@@ -19,12 +19,15 @@ let enabled = false;
 const listeners = new Set<Listener>();
 const statusListeners = new Set<StatusListener>();
 
-function normalizeActivityItem(item: ActivityItem & { ip_address?: string | null }): ActivityItem {
-  const ipAddress = item.ipAddress ?? item.ip_address ?? null;
-  return { ...item, ipAddress };
+function normalizeActivityItem(item: unknown): ActivityItem {
+  const rec = (item && typeof item === "object" ? item : {}) as ActivityItem & {
+    ip_address?: string | null;
+  };
+  const ipAddress = rec.ipAddress ?? rec.ip_address ?? null;
+  return { ...rec, ipAddress };
 }
 
-export function normalizeActivityItems(items: ActivityItem[]): ActivityItem[] {
+export function normalizeActivityItems(items: unknown[]): ActivityItem[] {
   return items.map(normalizeActivityItem);
 }
 
@@ -79,17 +82,17 @@ function connect() {
       } else if (payload && typeof payload === "object") {
         const p = payload as Record<string, unknown>;
         if (Array.isArray(p.activities)) {
-          msg.activities = (p.activities as ActivityItem[]).map(normalizeActivityItem);
+          msg.activities = normalizeActivityItems(p.activities);
         }
         if (raw.type === "new_activity") {
-          msg.data = normalizeActivityItem(p as ActivityItem);
+          msg.data = normalizeActivityItem(p);
         }
         if (
           raw.type === "statistics" ||
           raw.type === "stats_update" ||
           (typeof p.lastHour === "number" || typeof p.today === "number")
         ) {
-          msg.stats = p as ActivityStats;
+          msg.stats = p as unknown as ActivityStats;
         }
       }
       listeners.forEach((fn) => fn(msg));

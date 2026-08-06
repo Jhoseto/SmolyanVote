@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@/shared/lib/authContext";
 import { Avatar } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { useMyProfileStats } from "@/shared/hooks/useMyProfileStats";
+import { useMessengerUiStore } from "@/features/messenger/store/messengerUiStore";
+import { useIsDesktopMessenger } from "@/features/messenger/lib/isDesktopMessenger";
+import { UserMenuGamificationHeader, UserMenuGamificationSkeleton } from "./UserMenuGamificationHeader";
 
 interface UserMenuProps {
   className?: string;
@@ -15,53 +19,84 @@ interface UserMenuProps {
   onNavigate?: () => void;
 }
 
+function MenuDivider() {
+  return <div className="my-1 border-t border-border-default/60" />;
+}
+
+function menuItemClassName() {
+  return "flex w-full items-center gap-3 px-4 py-2 text-left text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-primary)] transition-colors hover:bg-primary-50 hover:text-primary";
+}
+
 function UserMenuPanel({
   logoutLabel,
   onNavigate,
+  menuOpen,
 }: {
   logoutLabel: string;
   onNavigate?: () => void;
+  menuOpen: boolean;
 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
+  const { stats, isPending } = useMyProfileStats(menuOpen);
+  const openPanel = useMessengerUiStore((s) => s.openPanel);
+  const setDownloadModalOpen = useMessengerUiStore((s) => s.setDownloadModalOpen);
+  const isDesktop = useIsDesktopMessenger();
+
   if (!user) return null;
 
   function closeAndNavigate() {
     onNavigate?.();
   }
 
+  function openMessenger() {
+    closeAndNavigate();
+    if (!isAuthenticated || !isDesktop) {
+      setDownloadModalOpen(true);
+      return;
+    }
+    openPanel();
+  }
+
   return (
     <>
-      <div className="flex items-center gap-3 px-4 py-2 text-sm text-[color:var(--color-text-primary)]">
-        <i className="bi bi-person shrink-0 text-[1rem]" />
-        <span className="min-w-0 font-light tracking-wide break-words">{user.username}</span>
-      </div>
-      <div className="my-1 border-t border-border-default/60" />
-      <Link
-        href="/profile"
-        onClick={closeAndNavigate}
-        className="flex w-full items-center gap-3 px-4 py-2 text-left text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-primary)] transition-colors hover:bg-primary-50 hover:text-primary"
-      >
+      {stats ? (
+        <>
+          <UserMenuGamificationHeader stats={stats} onNavigate={onNavigate} />
+          <MenuDivider />
+        </>
+      ) : isPending && menuOpen ? (
+        <UserMenuGamificationSkeleton />
+      ) : null}
+
+      <Link href="/profile" onClick={closeAndNavigate} className={menuItemClassName()}>
         <i className="bi bi-person-circle text-[1rem]" />
         <span>Моят профил</span>
       </Link>
-      {user.role === "ADMIN" && (
-        <Link
-          href="/admin"
-          onClick={closeAndNavigate}
-          className="flex w-full items-center gap-3 px-4 py-2 text-left text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-primary)] transition-colors hover:bg-primary-50 hover:text-primary"
-        >
+      <Link href="/publications/saved" onClick={closeAndNavigate} className={menuItemClassName()}>
+        <i className="bi bi-bookmark text-[1rem]" />
+        <span>Запазени</span>
+      </Link>
+      <button type="button" onClick={openMessenger} className={menuItemClassName()}>
+        <i className="bi bi-chat-dots text-[1rem]" />
+        <span>Съобщения</span>
+      </button>
+
+      {user.role === "ADMIN" ? (
+        <Link href="/admin" onClick={closeAndNavigate} className={menuItemClassName()}>
           <i className="bi bi-shield-lock text-[1rem]" />
           <span>Админ панел</span>
         </Link>
-      )}
-      <div className="my-1 border-t border-border-default/60" />
+      ) : null}
+
+      <MenuDivider />
+
       <button
         type="button"
         onClick={() => {
           onNavigate?.();
           logout();
         }}
-        className="flex w-full items-center gap-3 px-4 py-2 text-left text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-primary)] transition-colors hover:bg-primary-50 hover:text-primary"
+        className={menuItemClassName()}
       >
         <i className="bi bi-box-arrow-right text-[1rem]" />
         <span>{logoutLabel}</span>
@@ -98,7 +133,9 @@ export function UserMenu({
 
   if (!user) return null;
 
-  const panelContent = <UserMenuPanel logoutLabel={logoutLabel} onNavigate={onNavigate} />;
+  const panelContent = (
+    <UserMenuPanel logoutLabel={logoutLabel} onNavigate={onNavigate} menuOpen={open} />
+  );
 
   return (
     <div ref={ref} className={cn(layout === "dropdown" && "relative", className)}>
@@ -107,9 +144,10 @@ export function UserMenu({
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         className={cn(
-          "flex items-center gap-2 rounded-full px-2 py-1.5 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary",
-          layout === "drawer" && "min-h-[44px] w-full justify-start rounded-[12px] px-3 py-2.5",
-          layout === "drawer" && open && "bg-primary-50 text-primary",
+          "flex items-center gap-2 rounded-full border border-black/[0.08] px-2 py-1.5 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav)] transition-all duration-200 hover:border-black/[0.12] hover:bg-black/[0.035] hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/35",
+          layout === "drawer" && "min-h-[44px] w-full justify-start rounded-[12px] border-border-default/60 px-3 py-2.5",
+          layout === "drawer" && open && "border-primary/25 bg-primary-50 text-primary",
+          layout === "dropdown" && open && "border-primary/20 bg-black/[0.02]",
         )}
       >
         <Avatar username={user.username} imageUrl={user.imageUrl} size={32} />
@@ -138,7 +176,7 @@ export function UserMenu({
       ) : null}
 
       {layout === "dropdown" && open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 min-w-[240px] overflow-hidden rounded-[var(--radius-md)] border border-border-default/60 bg-white/95 py-2 shadow-[var(--shadow-dropdown)] backdrop-blur-md">
+        <div className="absolute left-1/2 top-[calc(100%+8px)] z-50 min-w-[240px] -translate-x-1/2 overflow-hidden rounded-[var(--radius-md)] border border-border-default/60 bg-white/98 py-1.5 shadow-[var(--shadow-dropdown)] backdrop-blur-md">
           {panelContent}
         </div>
       )}

@@ -247,108 +247,117 @@ export function PublicationDetailModal({
                 />
               )}
 
-              <div className="flex w-full items-center justify-between border-t border-border-default/60 pt-3 text-xs text-[color:var(--color-text-muted)] lg:flex-wrap lg:justify-start lg:gap-x-3.5 lg:gap-y-2">
-                <span className="inline-flex items-center gap-0.5">
+              <div className="flex flex-col gap-2 border-t border-border-default/60 pt-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[color:var(--color-text-muted)]">
+                  <button
+                    type="button"
+                    disabled={publication.likesCount === 0}
+                    onClick={() => publication.likesCount > 0 && setReactionModalType("like")}
+                    className="hover:underline disabled:no-underline"
+                  >
+                    {publication.likesCount} харесвания
+                  </button>
+                  <button
+                    type="button"
+                    disabled={publication.dislikesCount === 0}
+                    onClick={() => publication.dislikesCount > 0 && setReactionModalType("dislike")}
+                    className="hover:underline disabled:no-underline"
+                  >
+                    {publication.dislikesCount} нехаресвания
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCommentsExpanded(true)}
+                    className="hover:underline lg:pointer-events-none"
+                  >
+                    {publication.commentsCount} коментара
+                  </button>
+                  <span className="inline-flex items-center gap-1">
+                    <i className="bi bi-eye" aria-hidden />
+                    {publication.viewsCount}
+                  </span>
+                </div>
+
+                <div className="flex w-full items-center justify-evenly gap-0.5">
                   <button
                     type="button"
                     onClick={handleLike}
                     disabled={isLiking}
-                    aria-label="Харесване"
+                    aria-label="Харесвам"
                     className={cn(
-                      "transition-colors hover:text-primary disabled:opacity-50",
-                      publication.isLiked && "text-primary",
+                      "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50",
+                      publication.isLiked ? "text-primary" : "text-[color:var(--color-text-secondary)]",
                     )}
                   >
                     <i
                       className={cn(
-                        "bi text-sm",
+                        "bi shrink-0 text-base",
                         publication.isLiked ? "bi-hand-thumbs-up-fill" : "bi-hand-thumbs-up",
                       )}
                       aria-hidden
                     />
+                    <span className="hidden sm:inline">Харесвам</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => publication.likesCount > 0 && setReactionModalType("like")}
-                    disabled={publication.likesCount === 0}
-                    aria-label={`${publication.likesCount} харесвания`}
-                    className="tabular-nums hover:underline disabled:no-underline"
-                  >
-                    {publication.likesCount}
-                  </button>
-                </span>
-                <span className="inline-flex items-center gap-0.5">
                   <button
                     type="button"
                     onClick={handleDislike}
                     disabled={isDisliking}
-                    aria-label="Не харесване"
+                    aria-label="Не харесвам"
                     className={cn(
-                      "transition-colors hover:text-[color:var(--color-error)] disabled:opacity-50",
-                      publication.isDisliked && "text-[color:var(--color-error)]",
+                      "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-50",
+                      publication.isDisliked
+                        ? "text-[color:var(--color-error)]"
+                        : "text-[color:var(--color-text-secondary)]",
                     )}
                   >
                     <i
                       className={cn(
-                        "bi text-sm",
+                        "bi shrink-0 text-base",
                         publication.isDisliked ? "bi-hand-thumbs-down-fill" : "bi-hand-thumbs-down",
                       )}
                       aria-hidden
                     />
+                    <span className="hidden sm:inline">Не харесвам</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => publication.dislikesCount > 0 && setReactionModalType("dislike")}
-                    disabled={publication.dislikesCount === 0}
-                    aria-label={`${publication.dislikesCount} нехаресвания`}
-                    className="tabular-nums hover:underline disabled:no-underline"
+                    onClick={() => setCommentsExpanded(true)}
+                    aria-label="Коментирай"
+                    className="flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary lg:pointer-events-none"
                   >
-                    {publication.dislikesCount}
+                    <i className="bi bi-chat-fill shrink-0 text-base" aria-hidden />
+                    <span className="hidden sm:inline">Коментирай</span>
                   </button>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCommentsExpanded(true)}
-                  className="inline-flex items-center gap-0.5 transition-colors hover:text-primary lg:pointer-events-none"
-                  aria-label={`${publication.commentsCount} коментара`}
-                >
-                  <i className="bi bi-chat-fill text-sm" aria-hidden />
-                  <span className="tabular-nums">{publication.commentsCount}</span>
-                </button>
-                <PublicationShareSheet
-                  title={publication.title}
-                  url={shareUrl}
-                  onShared={() => recordShare(publication.id)}
-                  className="inline-flex items-center transition-colors hover:text-primary"
-                >
-                  <i className="bi bi-share text-sm" aria-hidden />
-                </PublicationShareSheet>
-                <button
-                  type="button"
-                  onClick={handleBookmark}
-                  disabled={isBookmarking}
-                  aria-label={publication.isBookmarked ? "Премахни от запазени" : "Запази"}
-                  className={cn(
-                    "inline-flex items-center transition-colors hover:text-primary disabled:opacity-50",
-                    publication.isBookmarked && "text-primary",
-                  )}
-                >
-                  <i
+                  <PublicationShareSheet
+                    title={publication.title}
+                    url={shareUrl}
+                    onShared={() => recordShare(publication.id)}
+                    className="flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary"
+                  >
+                    <i className="bi bi-share shrink-0 text-base" aria-hidden />
+                    <span className="hidden sm:inline">Сподели</span>
+                  </PublicationShareSheet>
+                  <button
+                    type="button"
+                    onClick={handleBookmark}
+                    disabled={isBookmarking}
+                    aria-label={publication.isBookmarked ? "Премахни от запазени" : "Запази"}
                     className={cn(
-                      "bi text-sm",
-                      publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark",
+                      "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium transition-colors hover:bg-primary-50 disabled:opacity-50",
+                      publication.isBookmarked ? "text-primary" : "text-[color:var(--color-text-secondary)]",
                     )}
-                    aria-hidden
-                  />
-                </button>
-                <span
-                  className="inline-flex items-center gap-0.5"
-                  aria-label={`${publication.viewsCount} прегледа`}
-                >
-                  <i className="bi bi-eye-fill text-sm" aria-hidden />
-                  <span className="tabular-nums">{publication.viewsCount}</span>
-                </span>
-                <div className="flex items-center lg:ml-auto">{reportSlot?.(publication)}</div>
+                  >
+                    <i
+                      className={cn(
+                        "bi shrink-0 text-base",
+                        publication.isBookmarked ? "bi-bookmark-fill" : "bi-bookmark",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="hidden sm:inline">Запази</span>
+                  </button>
+                  <div className="flex shrink-0 items-center justify-center">{reportSlot?.(publication)}</div>
+                </div>
               </div>
                 </div>
               </div>

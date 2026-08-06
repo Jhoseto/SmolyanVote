@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
-import { parseAsStringEnum, useQueryState } from "nuqs";
+import { type ReactNode, useEffect, useState } from "react";
+import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
 import { ErrorState, Skeleton } from "@/shared/ui";
 import { useProfile } from "../hooks/useProfile";
 import { ProfileHeader } from "./ProfileHeader";
@@ -34,9 +34,17 @@ export function ProfilePage({
 }: ProfilePageProps) {
   const { data: profile, isPending, isError, refetch } = useProfile(username);
   const [tab, setTab] = useQueryState("tab", parseAsStringEnum<ProfileTab>(TAB_VALUES).withDefault("overview"));
+  const [editQuery, setEditQuery] = useQueryState("edit", parseAsString);
   const [connectionsKind, setConnectionsKind] = useState<ConnectionsKind>("followers");
   const [editOpen, setEditOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+
+  useEffect(() => {
+    if (editQuery === "1" && profile?.isOwnProfile) {
+      setEditOpen(true);
+      void setEditQuery(null);
+    }
+  }, [editQuery, profile?.isOwnProfile, setEditQuery]);
 
   if (isPending) {
     return (

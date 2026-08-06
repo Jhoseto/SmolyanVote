@@ -14,6 +14,7 @@ import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.DeleteEventsService;
 import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.support.ReputationCounterService;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
@@ -41,6 +42,7 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
     private final smolyanVote.smolyanVote.scheduling.UserScheduler userScheduler;
     private final UserService userService;
     private final VoteIpRepository voteIpRepository;
+    private final ReputationCounterService reputationCounterService;
 
     private static final String VOTE_IP_SIMPLE = "SIMPLE_EVENT";
     private static final String VOTE_IP_REFERENDUM = "REFERENDUM";
@@ -64,7 +66,8 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
                                    ActivityLogService activityLogService,
                                    smolyanVote.smolyanVote.scheduling.UserScheduler userScheduler,
                                    UserService userService,
-                                   VoteIpRepository voteIpRepository) {
+                                   VoteIpRepository voteIpRepository,
+                                   ReputationCounterService reputationCounterService) {
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -83,6 +86,7 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
         this.userScheduler = userScheduler;
         this.userService = userService;
         this.voteIpRepository = voteIpRepository;
+        this.reputationCounterService = reputationCounterService;
     }
 
     public EventType getEventTypeById(Long id) {
@@ -110,43 +114,65 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
         ActivityActionEnum actionEnum = null;
 
         switch (type) {
-            case SIMPLEEVENT:
+            case SIMPLEEVENT -> {
+                SimpleEventEntity event = simpleEventRepository.findById(eventId)
+                        .orElseThrow(() -> new EntityNotFoundException("Събитието с ID " + eventId + " не съществува."));
+                eventTitle = event.getTitle();
+                creatorName = event.getCreatorName();
+                actionEnum = ActivityActionEnum.DELETE_EVENT;
+
+                reputationCounterService.onCommentsRemoved(commentsRepository.findByEvent_Id(eventId));
+                reputationCounterService.revertSimpleEventVotes(voteSimpleEventRepository.findByEvent_Id(eventId));
+                reputationCounterService.decrementUserEventsByCreator(event.getCreatorName());
+
                 voteIpRepository.deleteByEventIdAndEventType(eventId, VOTE_IP_SIMPLE);
-                // Изтриване на гласове и коментари
                 voteSimpleEventRepository.deleteAllByEventId(eventId);
                 commentsRepository.deleteAllByEvent_Id(eventId);
 
-                // Изтриване на записите за снимки от базата
                 List<SimpleEventImageEntity> simpleImages = simpleEventImageRepository.findByEventId(eventId);
                 simpleEventImageRepository.deleteAll(simpleImages);
 
-                // Изтриване на цялата папка със снимки от Cloudinary
                 String folderPathEvents = "smolyanVote/events/event_" + eventId;
                 imageCloudinaryService.deleteFolder(folderPathEvents);
 
-                // Изтриване на самото събитие
                 simpleEventRepository.deleteById(eventId);
-                break;
+            }
 
-            case REFERENDUM:
+            case REFERENDUM -> {
+                ReferendumEntity referendum = referendumRepository.findById(eventId)
+                        .orElseThrow(() -> new EntityNotFoundException("Събитието с ID " + eventId + " не съществува."));
+                eventTitle = referendum.getTitle();
+                creatorName = referendum.getCreatorName();
+                actionEnum = ActivityActionEnum.DELETE_EVENT;
+
+                reputationCounterService.onCommentsRemoved(commentsRepository.findByReferendum_Id(eventId));
+                reputationCounterService.revertReferendumVotes(voteReferendumRepository.findByReferendum_Id(eventId));
+                reputationCounterService.decrementUserEventsByCreator(referendum.getCreatorName());
+
                 voteIpRepository.deleteByEventIdAndEventType(eventId, VOTE_IP_REFERENDUM);
-                // Изтриване на папката със снимки от Cloudinary
                 String folderPathReferendums = "smolyanVote/referendums/referendum_" + eventId;
                 imageCloudinaryService.deleteFolder(folderPathReferendums);
 
-                // Изтриване на гласове и коментари
                 voteReferendumRepository.deleteAllByReferendumId(eventId);
                 commentsRepository.deleteAllByReferendum_Id(eventId);
 
-                // Изтриване на снимките от базата
                 List<ReferendumImageEntity> referendumImages = referendumImageRepository.findByReferendumId(eventId);
                 referendumImageRepository.deleteAll(referendumImages);
 
-                // Изтриване на референдума
                 referendumRepository.deleteById(eventId);
-                break;
+            }
 
-            case MULTI_POLL:
+            case MULTI_POLL -> {
+                MultiPollEntity poll = multiPollRepository.findById(eventId)
+                        .orElseThrow(() -> new EntityNotFoundException("Събитието с ID " + eventId + " не съществува."));
+                eventTitle = poll.getTitle();
+                creatorName = poll.getCreatorName();
+                actionEnum = ActivityActionEnum.DELETE_EVENT;
+
+                reputationCounterService.onCommentsRemoved(commentsRepository.findByMultiPoll_Id(eventId));
+                reputationCounterService.revertMultiPollVotes(voteMultiPollRepository.findByMultiPoll_Id(eventId));
+                reputationCounterService.decrementUserEventsByCreator(poll.getCreatorName());
+
                 voteIpRepository.deleteByEventIdAndEventType(eventId, VOTE_IP_MULTI_POLL);
                 String folderPathMultiPoll = "smolyanVote/multipolls/poll_" + eventId;
                 imageCloudinaryService.deleteFolder(folderPathMultiPoll);
@@ -158,9 +184,8 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
                 multiPollImageRepository.deleteAll(multiPollImages);
 
                 multiPollRepository.deleteById(eventId);
-                break;
-            default:
-                throw new UnsupportedOperationException("Тип на събитието не е поддържан за изтриване: " + type);
+            }
+            default -> throw new UnsupportedOperationException("Тип на събитието не е поддържан за изтриване: " + type);
         }
         // Activity logging for admin log panel СЛЕД успешното изтриване
         try {

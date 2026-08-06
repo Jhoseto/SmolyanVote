@@ -1,31 +1,22 @@
 import type { PublicProfile } from "../types";
-
-const TIERS = [
-  { threshold: 0, badge: "Нов потребител" },
-  { threshold: 50, badge: "Участник" },
-  { threshold: 200, badge: "Активен" },
-  { threshold: 500, badge: "Експерт" },
-  { threshold: 1000, badge: "VIP Потребител" },
-];
-
-function nextTier(score: number) {
-  return TIERS.find((t) => t.threshold > score) ?? null;
-}
+import Link from "next/link";
+import {
+  PARTICIPANT_STEPS,
+  REPUTATION_POINT_RULES,
+  SIGNAL_ACHIEVEMENTS,
+  getEarnedSignalAchievement,
+  getReputationProgress,
+  hasParticipantQualification,
+  toAchievementStats,
+} from "@/shared/lib/gamification";
+import { cn } from "@/shared/lib/cn";
 
 /** Reputation breakdown — the one piece of "overview" content not already covered by the header/other tabs. */
 export function ProfileOverviewTab({ profile }: { profile: PublicProfile }) {
-  const next = nextTier(profile.reputationScore);
-  const prevThreshold = TIERS.filter((t) => t.threshold <= profile.reputationScore).at(-1)?.threshold ?? 0;
-  const progress = next
-    ? Math.min(100, ((profile.reputationScore - prevThreshold) / (next.threshold - prevThreshold)) * 100)
-    : 100;
-
-  const signalBadges = [
-    { min: 1, label: "Гражданин", icon: "bi-megaphone" },
-    { min: 5, label: "Активен сигнализатор", icon: "bi-broadcast" },
-    { min: 15, label: "Глас на общността", icon: "bi-award" },
-  ];
-  const earnedSignalBadge = [...signalBadges].reverse().find((b) => profile.signalsCount >= b.min);
+  const stats = toAchievementStats(profile);
+  const progressInfo = getReputationProgress(stats);
+  const earnedSignalBadge = getEarnedSignalAchievement(stats);
+  const isObserver = !hasParticipantQualification(stats);
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,25 +26,74 @@ export function ProfileOverviewTab({ profile }: { profile: PublicProfile }) {
             <p className="text-sm text-[color:var(--color-text-muted)]">Репутация</p>
             <p className="text-2xl font-bold text-[color:var(--color-text-heading)]">{profile.reputationScore}</p>
           </div>
-          <span className="rounded-[var(--radius-pill)] bg-primary-50 px-3 py-1.5 text-sm font-semibold text-primary">
+          <span
+            className={cn(
+              "rounded-[var(--radius-pill)] px-3 py-1.5 text-sm font-semibold",
+              isObserver ? "bg-[color:var(--color-surface-muted)] text-[color:var(--color-text-secondary)]" : "bg-primary-50 text-primary",
+            )}
+          >
             {profile.reputationBadge}
           </span>
         </div>
 
-        {next && (
+        {isObserver ? (
+          <div className="rounded-[var(--radius-md)] border border-border-default/60 bg-[color:var(--color-surface-light)]/80 p-4">
+            <p className="text-sm font-semibold text-[color:var(--color-text-heading)]">Как да станеш Участник</p>
+            <p className="mt-1 text-xs text-[color:var(--color-text-muted)]">
+              Направи по едно действие от всяка категория — тогава точките започват да трупат нива.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {PARTICIPANT_STEPS.map((step) => {
+                const done = step.met(stats);
+                return (
+                  <li key={step.id} className="flex items-center gap-2 text-sm">
+                    <i
+                      className={cn(
+                        "bi text-base",
+                        done ? "bi-check-circle-fill text-primary" : "bi-circle text-[color:var(--color-text-muted)]",
+                      )}
+                      aria-hidden
+                    />
+                    <span className={done ? "text-[color:var(--color-text-primary)]" : "text-[color:var(--color-text-muted)]"}>
+                      {step.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            {progressInfo.kind === "participant" ? (
+              <p className="mt-3 text-xs text-[color:var(--color-text-muted)]">
+                Напредък: {progressInfo.completedSteps} от 4 категории
+              </p>
+            ) : null}
+          </div>
+        ) : progressInfo.kind === "points" && progressInfo.next ? (
           <div>
             <div className="h-2 w-full overflow-hidden rounded-[var(--radius-pill)] bg-[color:var(--color-surface-muted)]">
-              <div className="h-full bg-[image:var(--gradient-primary)]" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-[image:var(--gradient-primary)]" style={{ width: `${progressInfo.progress}%` }} />
             </div>
             <p className="mt-1.5 text-xs text-[color:var(--color-text-muted)]">
-              Още {next.threshold - profile.reputationScore} точки до „{next.badge}“
+              Още {progressInfo.remaining} точки до „{progressInfo.next.badge}“
             </p>
           </div>
-        )}
+        ) : null}
 
         <p className="text-xs text-[color:var(--color-text-muted)]">
-          Точките се получават за създадени събития, публикации, гласове и подадени граждански сигнали (+8 точки на сигнал).
+          {REPUTATION_POINT_RULES.map((rule, index) => (
+            <span key={rule.action}>
+              {index > 0 ? " · " : ""}
+              {rule.action} (+{rule.points})
+            </span>
+          ))}
         </p>
+
+        <Link
+          href="/achievements"
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          <i className="bi bi-award" />
+          Всички значки и постижения
+        </Link>
       </div>
 
       <div className="rounded-[var(--radius-lg)] bg-white p-6 shadow-[var(--shadow-sm)]">
@@ -62,11 +102,11 @@ export function ProfileOverviewTab({ profile }: { profile: PublicProfile }) {
           <span className="text-sm font-bold tabular-nums text-primary">{profile.signalsCount}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {signalBadges.map((badge) => {
-            const earned = profile.signalsCount >= badge.min;
+          {SIGNAL_ACHIEVEMENTS.map((badge) => {
+            const earned = profile.signalsCount >= badge.threshold;
             return (
               <span
-                key={badge.label}
+                key={badge.id}
                 className={
                   earned
                     ? "inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/60"
@@ -75,7 +115,7 @@ export function ProfileOverviewTab({ profile }: { profile: PublicProfile }) {
               >
                 <i className={`bi ${badge.icon}`} />
                 {badge.label}
-                {!earned ? ` (${badge.min}+)` : null}
+                {!earned ? ` (${badge.threshold}+)` : null}
               </span>
             );
           })}
@@ -85,7 +125,7 @@ export function ProfileOverviewTab({ profile }: { profile: PublicProfile }) {
             Текуща значка: <strong>{earnedSignalBadge.label}</strong>
           </p>
         ) : (
-          <p className="mt-3 text-xs text-[color:var(--color-text-muted)]">Подай първи сигнал, за да отключиш значка „Гражданин“.</p>
+          <p className="mt-3 text-xs text-[color:var(--color-text-muted)]">Подай 3 сигнала, за да отключиш значка „Гражданин“.</p>
         )}
       </div>
     </div>

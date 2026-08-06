@@ -62,6 +62,7 @@ export interface PublicProfile {
   eventsCount: number;
   publicationsCount: number;
   signalsCount: number;
+  votesCount: number;
   followersCount: number;
   followingCount: number;
   isFollowing: boolean;
