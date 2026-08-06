@@ -24,12 +24,37 @@ import {
   setActivityLiveEnabled,
   subscribeActivitySocket,
   subscribeActivityStatus,
+  normalizeActivityItems,
   type ActivitySocketStatus,
 } from "../lib/activitySocket";
 import type { ActivityItem, ActivityStats } from "../types";
 import { MetricGrid } from "./MetricGrid";
 
 type View = "feed" | "analytics" | "settings" | "audit";
+
+/** Full IP from REST/WS payload (camelCase or snake_case). */
+function resolveActivityIp(item: ActivityItem & { ip_address?: string | null }): string | null {
+  const raw = (item.ipAddress ?? item.ip_address ?? "").trim();
+  if (!raw || raw.toLowerCase() === "unknown") return null;
+  return raw;
+}
+
+function ActivityIpBadge({ ip }: { ip: string | null }) {
+  if (!ip) {
+    return (
+      <span className="shrink-0 font-mono text-[10px] text-[color:var(--color-text-muted)]">IP: —</span>
+    );
+  }
+
+  return (
+    <span
+      className="shrink-0 rounded bg-[color:var(--color-surface-muted)] px-1.5 py-0.5 font-mono text-[10px] text-[color:var(--color-text-primary)]"
+      title={`IP адрес: ${ip}`}
+    >
+      {ip}
+    </span>
+  );
+}
 
 export function ActivityPanel({ enabled }: { enabled: boolean }) {
   const toast = useToast();
@@ -59,7 +84,7 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     if (!enabled) return;
-    if (recentQ.data?.activities) setItems(recentQ.data.activities);
+    if (recentQ.data?.activities) setItems(normalizeActivityItems(recentQ.data.activities));
     if (recentQ.data?.stats) setStats(recentQ.data.stats);
   }, [enabled, recentQ.data]);
 
@@ -70,7 +95,10 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
       if (msg.type === "new_activity" && msg.data && typeof msg.data === "object") {
         const act = msg.data as ActivityItem;
         if (act.id != null) {
-          setItems((prev) => (prev.some((p) => p.id === act.id) ? prev : [act, ...prev]).slice(0, 500));
+          const normalized = normalizeActivityItems([act])[0];
+          setItems((prev) =>
+            (prev.some((p) => p.id === normalized.id) ? prev : [normalized, ...prev]).slice(0, 500),
+          );
         }
       }
       if (
@@ -105,7 +133,7 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
     if (live) {
       // pull once via REST as seed while socket connects
       void adminApi.activities().then((res) => {
-        setItems(res.activities ?? []);
+        setItems(normalizeActivityItems(res.activities ?? []));
         if (res.stats) setStats(res.stats);
       });
     }
@@ -144,14 +172,14 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
   });
 
   const displayItems = useMemo(() => {
-    if (filteredQ.data?.activities?.length) return filteredQ.data.activities;
+    if (filteredQ.data?.activities?.length) return normalizeActivityItems(filteredQ.data.activities);
     return items;
   }, [filteredQ.data, items]);
 
   const virtualizer = useVirtualizer({
     count: displayItems.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 56,
+    estimateSize: () => 72,
     overscan: 10,
   });
 
@@ -258,11 +286,14 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
       {view === "audit" && (
         <ul className="divide-y divide-border-default/40 rounded-[var(--radius-lg)] border border-border-default/60">
           {(auditQ.data?.activities ?? []).map((a) => (
-            <li key={a.id} className="px-4 py-3 text-sm">
-              <span className="font-medium">{a.displayText ?? a.action}</span>
-              <span className="ml-2 text-[color:var(--color-text-muted)]">
-                {a.username ?? "—"} · {formatRelativeDate(a.timestamp)}
-              </span>
+            <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 px-4 py-3 text-sm">
+              <div className="min-w-0">
+                <span className="font-medium">{a.displayText ?? a.action}</span>
+                <span className="ml-2 text-[color:var(--color-text-muted)]">
+                  {a.username ?? "—"} · {formatRelativeDate(a.timestamp)}
+                </span>
+              </div>
+              <ActivityIpBadge ip={resolveActivityIp(a)} />
             </li>
           ))}
           {auditQ.isPending && <li className="px-4 py-3 text-sm">Зареждане…</li>}
@@ -346,6 +377,7 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
             <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
               {virtualizer.getVirtualItems().map((row) => {
                 const item = displayItems[row.index];
+                const ip = resolveActivityIp(item);
                 return (
                   <div
                     key={item.id}
@@ -358,12 +390,14 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
                     }}
                     className="flex items-start gap-2 border-b border-border-default/40 px-3 py-2 text-sm"
                   >
-                    <i className={cn("bi mt-0.5", item.iconClass || "bi-circle")} />
+                    <i className={cn("bi mt-0.5 shrink-0", item.iconClass || "bi-circle")} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{item.displayText || item.action}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 truncate font-medium">{item.displayText || item.action}</p>
+                        <ActivityIpBadge ip={ip} />
+                      </div>
                       <p className="text-[11px] text-[color:var(--color-text-muted)]">
-                        {item.username}
-                        {item.ipAddress ? ` · ${item.ipAddress}` : ""}
+                        {item.username ?? "—"}
                         {item.timestamp ? ` · ${formatRelativeDate(item.timestamp)}` : ""}
                       </p>
                     </div>

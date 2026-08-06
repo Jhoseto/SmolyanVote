@@ -19,6 +19,15 @@ let enabled = false;
 const listeners = new Set<Listener>();
 const statusListeners = new Set<StatusListener>();
 
+function normalizeActivityItem(item: ActivityItem & { ip_address?: string | null }): ActivityItem {
+  const ipAddress = item.ipAddress ?? item.ip_address ?? null;
+  return { ...item, ipAddress };
+}
+
+export function normalizeActivityItems(items: ActivityItem[]): ActivityItem[] {
+  return items.map(normalizeActivityItem);
+}
+
 function setStatus(next: ActivitySocketStatus) {
   status = next;
   statusListeners.forEach((fn) => fn(next));
@@ -66,10 +75,15 @@ function connect() {
 
       const payload = raw.data;
       if (Array.isArray(payload)) {
-        msg.activities = payload as ActivityItem[];
+        msg.activities = payload.map(normalizeActivityItem);
       } else if (payload && typeof payload === "object") {
         const p = payload as Record<string, unknown>;
-        if (Array.isArray(p.activities)) msg.activities = p.activities as ActivityItem[];
+        if (Array.isArray(p.activities)) {
+          msg.activities = (p.activities as ActivityItem[]).map(normalizeActivityItem);
+        }
+        if (raw.type === "new_activity") {
+          msg.data = normalizeActivityItem(p as ActivityItem);
+        }
         if (
           raw.type === "statistics" ||
           raw.type === "stats_update" ||
