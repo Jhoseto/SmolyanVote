@@ -41,6 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // failed inside apiClient), `meQuery.isError` derives `isAuthenticated`
   // back to false immediately — no separate setState needed. Dropping the
   // dead tokens from storage is a genuine external-system side effect.
+  useEffect(() => {
+    if (hasToken && meQuery.data) {
+      tokenStore.syncAccessCookie();
+    }
+  }, [hasToken, meQuery.data]);
+
   const isAuthenticated = hasToken && !meQuery.isError;
 
   useEffect(() => {

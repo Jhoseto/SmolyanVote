@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, Long> {
+public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, Long>, JpaSpecificationExecutor<ActivityLogEntity> {
 
     // ===== BASIC QUERIES =====
 
@@ -139,4 +140,13 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, 
      * Брои записи преди определена дата
      */
     long countByTimestampBefore(LocalDateTime before);
+
+    @Query("SELECT DISTINCT a.action FROM ActivityLogEntity a WHERE a.action IS NOT NULL ORDER BY a.action")
+    List<String> findDistinctActions();
+
+    @Query("SELECT DISTINCT a.entityType FROM ActivityLogEntity a WHERE a.entityType IS NOT NULL ORDER BY a.entityType")
+    List<String> findDistinctEntityTypes();
+
+    @Query("SELECT DISTINCT a.username FROM ActivityLogEntity a WHERE a.username IS NOT NULL ORDER BY a.username")
+    List<String> findDistinctUsernames();
 }

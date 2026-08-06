@@ -16,7 +16,9 @@ import smolyanVote.smolyanVote.models.ActivityLogEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.repositories.ActivityLogRepository;
+import smolyanVote.smolyanVote.repositories.ActivityLogSpecifications;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
+import smolyanVote.smolyanVote.services.support.ActivityLogSearchCriteria;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -390,6 +392,29 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             System.err.println("Error filtering activities: " + e.getMessage());
             return Page.empty(pageable);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ActivityLogEntity> searchActivities(ActivityLogSearchCriteria criteria, Pageable pageable) {
+        ActivityLogSearchCriteria safe = criteria != null ? criteria : ActivityLogSearchCriteria.empty();
+        try {
+            return activityLogRepository.findAll(ActivityLogSpecifications.fromCriteria(safe), pageable);
+        } catch (Exception e) {
+            System.err.println("Error searching activities: " + e.getMessage());
+            return Page.empty(pageable);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getActivityFilterFacets() {
+        Map<String, Object> facets = new HashMap<>();
+        facets.put("actions", activityLogRepository.findDistinctActions());
+        facets.put("entityTypes", activityLogRepository.findDistinctEntityTypes());
+        facets.put("usernames", activityLogRepository.findDistinctUsernames());
+        facets.put("typeCategories", List.of("create", "interact", "view", "moderate", "auth", "other"));
+        return facets;
     }
 
     @Override

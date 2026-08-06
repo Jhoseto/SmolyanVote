@@ -19,7 +19,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import smolyanVote.smolyanVote.services.support.ActivityLogSearchCriteria;
 
 @RestController
 @RequestMapping("/admin/api/activities")
@@ -108,12 +110,16 @@ public class AdminActivityController {
 
     @GetMapping("/filtered")
     public ResponseEntity<Map<String, Object>> getFilteredActivities(
+            @RequestParam(required = false) String query,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) String typeCategory,
+            @RequestParam(required = false) String timeRange,
+            @RequestParam(required = false, defaultValue = "false") boolean ipOnly,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "100") int size,
             @RequestParam(defaultValue = "timestamp") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
 
@@ -121,11 +127,18 @@ public class AdminActivityController {
             size = Math.min(Math.max(1, size), 500);
             page = Math.max(0, page);
 
+            if (!Set.of("timestamp", "username", "action", "entityType", "ipAddress").contains(sortBy)) {
+                sortBy = "timestamp";
+            }
+
             Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            Page<ActivityLogEntity> activitiesPage = activityLogService.getActivitiesWithFilters(
-                    action, username, entityType, since, pageable);
+            LocalDateTime effectiveSince = since != null ? since : resolveTimeRange(timeRange);
+            ActivityLogSearchCriteria criteria = new ActivityLogSearchCriteria(
+                    query, username, action, entityType, typeCategory, effectiveSince, ipOnly);
+
+            Page<ActivityLogEntity> activitiesPage = activityLogService.searchActivities(criteria, pageable);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -139,10 +152,14 @@ public class AdminActivityController {
             response.put("timestamp", LocalDateTime.now());
 
             Map<String, Object> filters = new HashMap<>();
+            filters.put("query", query);
             filters.put("action", action);
             filters.put("username", username);
             filters.put("entityType", entityType);
-            filters.put("since", since);
+            filters.put("typeCategory", typeCategory);
+            filters.put("timeRange", timeRange);
+            filters.put("ipOnly", ipOnly);
+            filters.put("since", effectiveSince);
             response.put("appliedFilters", filters);
 
             return ResponseEntity.ok(response);
@@ -150,6 +167,20 @@ public class AdminActivityController {
         } catch (Exception e) {
             System.err.println("❌ Error filtering activities: " + e.getMessage());
             return ResponseEntity.status(500).body(createErrorResponse("Грешка при филтрирането на активностите: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/facets")
+    public ResponseEntity<Map<String, Object>> getActivityFacets() {
+        try {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("facets", activityLogService.getActivityFilterFacets());
+            response.put("timestamp", LocalDateTime.now());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("❌ Error loading activity facets: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждане на филтрите: " + e.getMessage()));
         }
     }
 
@@ -391,6 +422,20 @@ public class AdminActivityController {
 
     // ===== HELPER METHODS =====
 
+    private static LocalDateTime resolveTimeRange(String timeRange) {
+        if (timeRange == null || timeRange.isBlank() || "all".equalsIgnoreCase(timeRange)) {
+            return null;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        return switch (timeRange.toLowerCase()) {
+            case "1h" -> now.minusHours(1);
+            case "24h" -> now.minusHours(24);
+            case "7d" -> now.minusDays(7);
+            case "today" -> now.toLocalDate().atStartOfDay();
+            default -> null;
+        };
+    }
+
     private List<Map<String, Object>> convertActivitiesToJson(List<ActivityLogEntity> activities) {
         return activities.stream().map(activity -> {
             Map<String, Object> map = new HashMap<>();
@@ -417,6 +462,7 @@ public class AdminActivityController {
         String actionLower = action.toLowerCase();
 
         if (actionLower.contains("create")) return "create";
+        if (actionLower.contains("view")) return "view";
         if (actionLower.contains("like") || actionLower.contains("vote") || actionLower.contains("share")) return "interact";
         if (actionLower.contains("delete") || actionLower.contains("report") || actionLower.contains("moderate")) return "moderate";
         if (actionLower.contains("login") || actionLower.contains("logout") || actionLower.contains("register")) return "auth";

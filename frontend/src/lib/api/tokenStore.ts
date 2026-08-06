@@ -33,9 +33,9 @@ export const tokenStore = {
     const access = read(ACCESS_KEY);
     if (!access || !isBrowser) return;
     const persistent = window.localStorage.getItem(REFRESH_KEY) !== null;
-    const maxAge = persistent ? 60 * 60 * 24 * 30 : undefined;
-    let cookie = `sv_access_token=${encodeURIComponent(access)}; path=/; SameSite=Lax`;
-    if (maxAge) cookie += `; max-age=${maxAge}`;
+    // Mirror JWT into cookie for Next middleware; session-only gets 24h max-age.
+    const maxAge = persistent ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
+    let cookie = `sv_access_token=${encodeURIComponent(access)}; path=/; max-age=${maxAge}; SameSite=Lax`;
     if (window.location.protocol === "https:") cookie += "; Secure";
     document.cookie = cookie;
   },

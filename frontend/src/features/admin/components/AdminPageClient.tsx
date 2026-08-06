@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Container, EmptyState, LogoLoader, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
+import { tokenStore } from "@/lib/api/tokenStore";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
 import type { AdminTab } from "../types";
 import { OverviewPanel } from "./OverviewPanel";
@@ -59,6 +60,12 @@ export function AdminPageClient() {
   useEffect(() => {
     setTab(parseTab(searchParams.get("tab")));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (user?.role === "ADMIN") {
+      tokenStore.syncAccessCookie();
+    }
+  }, [user]);
 
   const selectTab = (next: AdminTab) => {
     setTab(next);

@@ -185,25 +185,44 @@ export function filterAndSortActivities(
   });
 }
 
-export function deriveFilterOptions(items: ActivityItem[]) {
-  const actions = new Set<string>();
-  const entityTypes = new Set<string>();
-  const usernames = new Set<string>();
-  const typeCategories = new Set<string>();
+export const ACTIVITY_PAGE_SIZE = 100;
 
-  for (const item of items) {
-    if (item.action) actions.add(item.action);
-    if (item.entityType) entityTypes.add(item.entityType);
-    if (item.username) usernames.add(item.username);
-    if (item.type) typeCategories.add(item.type);
-  }
-
-  const sortAlpha = (a: string, b: string) => a.localeCompare(b, "bg", { sensitivity: "base" });
-
+/** Map UI filters to server-side search params (searches entire activity_logs table). */
+export function activityFiltersToApiParams(
+  filters: ActivityFeedFilters,
+  page: number,
+  size: number = ACTIVITY_PAGE_SIZE,
+): Record<string, string | number | undefined> {
   return {
-    actions: [...actions].sort(sortAlpha),
-    entityTypes: [...entityTypes].sort(sortAlpha),
-    usernames: [...usernames].sort(sortAlpha),
-    typeCategories: [...typeCategories].sort(sortAlpha),
+    query: filters.query.trim() || undefined,
+    username: filters.username || undefined,
+    action: filters.action || undefined,
+    entityType: filters.entityType || undefined,
+    typeCategory: filters.typeCategory || undefined,
+    timeRange: filters.timeRange !== "all" ? filters.timeRange : undefined,
+    ipOnly: filters.ipOnly ? "true" : undefined,
+    page,
+    size,
+    sortBy: filters.sortField,
+    sortDir: filters.sortDir,
+  };
+}
+
+export function filtersAffectServerQuery(filters: ActivityFeedFilters, debouncedQuery: string): ActivityFeedFilters {
+  return { ...filters, query: debouncedQuery };
+}
+
+export function facetsToFilterOptions(facets: {
+  actions?: string[];
+  entityTypes?: string[];
+  usernames?: string[];
+  typeCategories?: string[];
+}) {
+  const sortAlpha = (a: string, b: string) => a.localeCompare(b, "bg", { sensitivity: "base" });
+  return {
+    actions: [...(facets.actions ?? [])].sort(sortAlpha),
+    entityTypes: [...(facets.entityTypes ?? [])].sort(sortAlpha),
+    usernames: [...(facets.usernames ?? [])].sort(sortAlpha),
+    typeCategories: [...(facets.typeCategories ?? [])].sort(sortAlpha),
   };
 }

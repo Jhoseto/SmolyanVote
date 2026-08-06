@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import smolyanVote.smolyanVote.services.support.ActivityLogSearchCriteria;
+
 public interface ActivityLogService {
 
     // ===== CORE LOGGING METHODS =====
@@ -46,6 +48,10 @@ public interface ActivityLogService {
     Page<ActivityLogEntity> getActivitiesWithFilters(String action, String username,
                                                      String entityType, LocalDateTime since,
                                                      Pageable pageable);
+
+    Page<ActivityLogEntity> searchActivities(ActivityLogSearchCriteria criteria, Pageable pageable);
+
+    Map<String, Object> getActivityFilterFacets();
 
     Page<ActivityLogEntity> getAdminActivities(Pageable pageable);
     List<ActivityLogEntity> getActivitiesForEntity(String entityType, Long entityId);

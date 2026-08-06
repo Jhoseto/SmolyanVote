@@ -8,7 +8,6 @@ import {
   DEFAULT_ACTIVITY_FEED_FILTERS,
   hasActiveActivityFilters,
   type ActivityFeedFilters,
-  type ActivitySortDir,
   type ActivitySortField,
   type ActivityTimeRange,
 } from "../lib/activityFeedFilters";
@@ -22,13 +21,12 @@ interface ActivityFeedToolbarProps {
     usernames: string[];
     typeCategories: string[];
   };
-  totalCount: number;
-  filteredCount: number;
-  totalInDatabase?: number | null;
-  oldestLoadedLabel?: string | null;
-  hasMoreHistory?: boolean;
-  loadingMore?: boolean;
-  onLoadOlder?: () => void;
+  page: number;
+  totalPages: number;
+  totalMatching: number;
+  pageSize: number;
+  isFetching?: boolean;
+  onPageChange: (page: number) => void;
 }
 
 const inputClass =
@@ -38,15 +36,15 @@ export function ActivityFeedToolbar({
   filters,
   onChange,
   options,
-  totalCount,
-  filteredCount,
-  totalInDatabase,
-  oldestLoadedLabel,
-  hasMoreHistory,
-  loadingMore,
-  onLoadOlder,
+  page,
+  totalPages,
+  totalMatching,
+  pageSize,
+  isFetching,
+  onPageChange,
 }: ActivityFeedToolbarProps) {
   const active = hasActiveActivityFilters(filters);
+  const safeTotalPages = Math.max(1, totalPages);
 
   function patch(partial: Partial<ActivityFeedFilters>) {
     onChange({ ...filters, ...partial });
@@ -63,7 +61,7 @@ export function ActivityFeedToolbar({
           <input
             value={filters.query}
             onChange={(e) => patch({ query: e.target.value })}
-            placeholder="Търсене по думи, IP, потребител, детайли…"
+            placeholder="Търсене по думи, IP, потребител, детайли… (цялата база)"
             className={cn(inputClass, "w-full pl-8")}
             aria-label="Търсене в активностите"
           />
@@ -174,36 +172,35 @@ export function ActivityFeedToolbar({
           />
           Само записи с IP адрес
         </label>
-        <div className="flex flex-wrap items-center gap-2">
-          {oldestLoadedLabel ? (
-            <span title="Най-старият зареден запис">
-              Най-стар зареден: <strong className="text-[color:var(--color-text-primary)]">{oldestLoadedLabel}</strong>
-            </span>
-          ) : null}
-          <span>
-            Показани <strong className="text-[color:var(--color-text-primary)]">{filteredCount}</strong> от{" "}
-            <strong className="text-[color:var(--color-text-primary)]">{totalCount}</strong> заредени
-            {totalInDatabase != null ? (
-              <>
-                {" "}
-                (общо в базата: <strong className="text-[color:var(--color-text-primary)]">{totalInDatabase}</strong>)
-              </>
-            ) : null}
-            {active ? " · филтрирани локално" : ""}
-          </span>
-        </div>
+        <span>
+          <strong className="text-[color:var(--color-text-primary)]">{totalMatching.toLocaleString("bg-BG")}</strong>{" "}
+          резултата в базата
+          {isFetching ? " · зареждане…" : ""}
+          {active ? " · филтри/сортиране на сървъра" : ""}
+        </span>
       </div>
 
-      {hasMoreHistory && onLoadOlder ? (
-        <button
-          type="button"
-          disabled={loadingMore}
-          onClick={onLoadOlder}
-          className="w-full rounded border border-dashed border-border-default/80 px-3 py-2 text-xs font-medium text-[color:var(--color-text-secondary)] hover:border-primary/50 hover:text-primary disabled:opacity-50"
-        >
-          {loadingMore ? "Зареждане…" : "Зареди по-стари записи (+500)"}
-        </button>
-      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] text-[color:var(--color-text-muted)]">
+          Страница{" "}
+          <strong className="text-[color:var(--color-text-primary)]">{page + 1}</strong> от{" "}
+          <strong className="text-[color:var(--color-text-primary)]">{safeTotalPages}</strong>
+          {" · "}
+          {pageSize} на страница
+        </span>
+        <div className="flex gap-1">
+          <PaginationButton
+            disabled={page <= 0 || isFetching}
+            onClick={() => onPageChange(page - 1)}
+            label="← По-нови"
+          />
+          <PaginationButton
+            disabled={page + 1 >= safeTotalPages || isFetching}
+            onClick={() => onPageChange(page + 1)}
+            label="По-стари →"
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -280,6 +277,27 @@ function SortDirButton({
           ? "border-primary bg-primary/10 font-medium text-primary"
           : "border-border-default/60 text-[color:var(--color-text-secondary)]",
       )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function PaginationButton({
+  label,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded border border-border-default/60 px-3 py-1.5 text-xs font-medium text-[color:var(--color-text-secondary)] hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
     >
       {label}
     </button>

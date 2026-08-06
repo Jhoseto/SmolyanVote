@@ -289,6 +289,17 @@ export const adminApi = {
   activitiesSince: (lastId: number) =>
     apiClient.get<ActivitiesResponse>(`/admin/api/activities/since/${lastId}`),
 
+  activityFacets: () =>
+    apiClient.get<{
+      success: boolean;
+      facets: {
+        actions: string[];
+        entityTypes: string[];
+        usernames: string[];
+        typeCategories: string[];
+      };
+    }>("/admin/api/activities/facets"),
+
   activitiesFiltered: (params: Record<string, string | number | undefined>) => {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
