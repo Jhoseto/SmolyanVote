@@ -3,21 +3,24 @@ package smolyanVote.smolyanVote.controllers.mobile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.jwt.JwtTokenService;
+import smolyanVote.smolyanVote.services.mobile.MobileOAuthService;
 import smolyanVote.smolyanVote.viewsAndDTO.mobile.MobileLoginRequest;
 
 import java.time.Instant;
@@ -29,34 +32,35 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Integration тестове за MobileAuthController
- */
-@WebMvcTest(MobileAuthController.class)
+@ExtendWith(MockitoExtension.class)
 class MobileAuthControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private AuthenticationManager authenticationManager;
 
-    @MockBean
+    @Mock
     private UserService userService;
 
-    @MockBean
+    @Mock
     private UserRepository userRepository;
 
-    @MockBean
+    @Mock
     private JwtTokenService jwtTokenService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Mock
+    private MobileOAuthService mobileOAuthService;
 
+    @InjectMocks
+    private MobileAuthController controller;
+
+    private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
     private UserEntity testUser;
 
     @BeforeEach
     void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        objectMapper = new ObjectMapper();
         testUser = new UserEntity();
         testUser.setId(1L);
         testUser.setEmail("test@smolyanvote.com");
@@ -69,7 +73,6 @@ class MobileAuthControllerTest {
 
     @Test
     void testLoginSuccess() throws Exception {
-        // Arrange
         MobileLoginRequest request = new MobileLoginRequest();
         request.setEmail("test@smolyanvote.com");
         request.setPassword("password123");
@@ -82,7 +85,6 @@ class MobileAuthControllerTest {
         when(jwtTokenService.generateRefreshToken(any(UserEntity.class))).thenReturn("refresh-token");
         when(userRepository.save(any(UserEntity.class))).thenReturn(testUser);
 
-        // Act & Assert
         mockMvc.perform(post("/api/mobile/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -95,7 +97,6 @@ class MobileAuthControllerTest {
 
     @Test
     void testLoginInvalidCredentials() throws Exception {
-        // Arrange
         MobileLoginRequest request = new MobileLoginRequest();
         request.setEmail("test@smolyanvote.com");
         request.setPassword("wrongpassword");
@@ -104,7 +105,6 @@ class MobileAuthControllerTest {
                 .thenThrow(new BadCredentialsException("Bad credentials"));
         when(userService.findUserByEmail(anyString())).thenReturn(Optional.of(testUser));
 
-        // Act & Assert
         mockMvc.perform(post("/api/mobile/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -114,14 +114,12 @@ class MobileAuthControllerTest {
 
     @Test
     void testLoginUserNotFound() throws Exception {
-        // Arrange
         MobileLoginRequest request = new MobileLoginRequest();
         request.setEmail("nonexistent@smolyanvote.com");
         request.setPassword("password123");
 
         when(userService.findUserByEmail(anyString())).thenReturn(Optional.empty());
 
-        // Act & Assert
         mockMvc.perform(post("/api/mobile/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -131,7 +129,6 @@ class MobileAuthControllerTest {
 
     @Test
     void testLoginPendingActivation() throws Exception {
-        // Arrange
         testUser.setStatus(UserStatusEnum.PENDING_ACTIVATION);
         MobileLoginRequest request = new MobileLoginRequest();
         request.setEmail("test@smolyanvote.com");
@@ -139,7 +136,6 @@ class MobileAuthControllerTest {
 
         when(userService.findUserByEmail(anyString())).thenReturn(Optional.of(testUser));
 
-        // Act & Assert
         mockMvc.perform(post("/api/mobile/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -147,4 +143,3 @@ class MobileAuthControllerTest {
                 .andExpect(jsonPath("$.error").exists());
     }
 }
-

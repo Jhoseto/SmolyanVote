@@ -2,6 +2,7 @@ package solyanVote.solyanVote;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -13,6 +14,7 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Execution(ExecutionMode.CONCURRENT)
+@Disabled("Manual load test — requires a running server at BASE_URL and a valid AUTH_TOKEN")
 public class LoadAndConcurrencyPublicTest {
 
     private static final int NUMBER_OF_REQUESTS = 1000; // броя на заявките

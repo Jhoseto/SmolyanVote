@@ -13,6 +13,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.services.VoteIdempotencyService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
+import smolyanVote.smolyanVote.utils.ClientIpResolver;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.CastMultiPollVoteRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.CastReferendumVoteRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.CastSimpleEventVoteRequest;
@@ -32,14 +33,17 @@ public class VotesController {
     private final VoteService voteService;
     private final UserService userService;
     private final VoteIdempotencyService voteIdempotencyService;
+    private final ClientIpResolver clientIpResolver;
 
     public VotesController(
             VoteService voteService,
             UserService userService,
-            VoteIdempotencyService voteIdempotencyService) {
+            VoteIdempotencyService voteIdempotencyService,
+            ClientIpResolver clientIpResolver) {
         this.voteService = voteService;
         this.userService = userService;
         this.voteIdempotencyService = voteIdempotencyService;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @PostMapping("/simple")
@@ -111,14 +115,7 @@ public class VotesController {
     }
 
     private String clientIp(HttpServletRequest request) {
-        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP"};
-        for (String header : headers) {
-            String ip = request.getHeader(header);
-            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-                return ip.split(",")[0].trim();
-            }
-        }
-        return request.getRemoteAddr();
+        return clientIpResolver.resolve(request);
     }
 
     @ExceptionHandler({DataIntegrityViolationException.class, UnexpectedRollbackException.class})

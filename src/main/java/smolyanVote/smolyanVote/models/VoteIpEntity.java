@@ -7,6 +7,8 @@ import java.time.Instant;
 @Entity
 @Table(name = "vote_ips", indexes = {
         @Index(name = "idx_ip_event", columnList = "ip_address,event_id,event_type")
+}, uniqueConstraints = {
+        @UniqueConstraint(name = "uk_vote_ip_user_event", columnNames = {"user_id", "event_id", "event_type"})
 })
 public class VoteIpEntity {
 
@@ -15,28 +17,34 @@ public class VoteIpEntity {
     private Long id;
 
     @Column(nullable = false)
-    private String ipAddress;  // IP адрес на потребителя
+    private String ipAddress;
 
     @Column(nullable = false)
-    private Long eventId;  // ID на събитието (SimpleEvent, Referendum или MultiPoll)
+    private Long eventId;
 
     @Column(nullable = false, length = 20)
-    private String eventType;  // Тип събитие: "SIMPLE_EVENT", "REFERENDUM", "MULTI_POLL"
+    private String eventType;
+
+    @Column(name = "user_id")
+    private Long userId;
 
     @Column(nullable = false)
-    private Instant votedAt = Instant.now();  // Време на гласуване
+    private Instant votedAt = Instant.now();
 
-    // Конструктори
     public VoteIpEntity() {}
 
     public VoteIpEntity(String ipAddress, Long eventId, String eventType) {
+        this(ipAddress, eventId, eventType, null);
+    }
+
+    public VoteIpEntity(String ipAddress, Long eventId, String eventType, Long userId) {
         this.ipAddress = ipAddress;
         this.eventId = eventId;
         this.eventType = eventType;
+        this.userId = userId;
         this.votedAt = Instant.now();
     }
 
-    // Getters и Setters
     public Long getId() {
         return id;
     }
@@ -67,6 +75,14 @@ public class VoteIpEntity {
 
     public void setEventType(String eventType) {
         this.eventType = eventType;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public Instant getVotedAt() {

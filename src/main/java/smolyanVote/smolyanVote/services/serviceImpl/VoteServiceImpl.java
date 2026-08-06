@@ -10,6 +10,7 @@ import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
+import smolyanVote.smolyanVote.services.support.VoteIpGuardService;
 
 import java.util.List;
 
@@ -24,9 +25,8 @@ public class VoteServiceImpl implements VoteService {
     private final MultiPollRepository multiPollRepository;
     private final VoteMultiPollRepository voteMultiPollRepository;
     private final NotificationService notificationService;
-    private final VoteIpRepository voteIpRepository;
+    private final VoteIpGuardService voteIpGuardService;
 
-    private static final int MAX_VOTES_PER_IP = 3;
     private static final String EVENT_TYPE_SIMPLE = "SIMPLE_EVENT";
     private static final String EVENT_TYPE_REFERENDUM = "REFERENDUM";
     private static final String EVENT_TYPE_MULTI_POLL = "MULTI_POLL";
@@ -40,7 +40,7 @@ public class VoteServiceImpl implements VoteService {
                            MultiPollRepository multiPollRepository,
                            VoteMultiPollRepository voteMultiPollRepository,
                            NotificationService notificationService,
-                           VoteIpRepository voteIpRepository) {
+                           VoteIpGuardService voteIpGuardService) {
         this.simpleEventRepository = simpleEventRepository;
         this.userRepository = userRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -49,7 +49,7 @@ public class VoteServiceImpl implements VoteService {
         this.multiPollRepository = multiPollRepository;
         this.voteMultiPollRepository = voteMultiPollRepository;
         this.notificationService = notificationService;
-        this.voteIpRepository = voteIpRepository;
+        this.voteIpGuardService = voteIpGuardService;
     }
 
 
@@ -67,15 +67,7 @@ public class VoteServiceImpl implements VoteService {
             throw new IllegalStateException("Потребителят вече е гласувал за това събитие.");
         }
 
-        // Проверка за IP лимит (3 гласа от един IP за едно събитие)
-        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
-            long ipVoteCount = voteIpRepository.countByIpAddressAndEventIdAndEventType(
-                    ipAddress, eventId, EVENT_TYPE_SIMPLE);
-            if (ipVoteCount >= MAX_VOTES_PER_IP) {
-                throw new IllegalStateException(
-                        "Достигнат е лимитът от " + MAX_VOTES_PER_IP + " гласа от този IP адрес за това събитие.");
-            }
-        }
+        voteIpGuardService.reserveIpSlot(ipAddress, eventId, EVENT_TYPE_SIMPLE, user.getId());
 
         VoteSimpleEventEntity vote = new VoteSimpleEventEntity();
         vote.setUser(user);
@@ -103,12 +95,6 @@ public class VoteServiceImpl implements VoteService {
 
         user.setTotalVotes(user.getTotalVotes() + 1);
         userRepository.save(user);
-
-        // Записване на IP адреса в VoteIpEntity
-        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
-            VoteIpEntity voteIp = new VoteIpEntity(ipAddress, eventId, EVENT_TYPE_SIMPLE);
-            voteIpRepository.save(voteIp);
-        }
 
         // ✅ НОТИФИКАЦИЯ - намери creator-а на събитието
         UserEntity creator = userRepository.findByUsername(event.getCreatorName())
@@ -145,14 +131,7 @@ public class VoteServiceImpl implements VoteService {
             throw new IllegalStateException("Вече сте гласували в този референдум.");
         }
 
-        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
-            long ipVoteCount = voteIpRepository.countByIpAddressAndEventIdAndEventType(
-                    ipAddress, referendumId, EVENT_TYPE_REFERENDUM);
-            if (ipVoteCount >= MAX_VOTES_PER_IP) {
-                throw new IllegalStateException(
-                        "Достигнат е лимитът от " + MAX_VOTES_PER_IP + " гласа от този IP адрес за този референдум.");
-            }
-        }
+        voteIpGuardService.reserveIpSlot(ipAddress, referendumId, EVENT_TYPE_REFERENDUM, user.getId());
 
         int voteIndex;
         try {
@@ -190,12 +169,6 @@ public class VoteServiceImpl implements VoteService {
         vote.setVoteValue(voteIndex);
         voteReferendumRepository.save(vote);
 
-        // Записване на IP адреса в VoteIpEntity
-        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
-            VoteIpEntity voteIp = new VoteIpEntity(ipAddress, referendumId, EVENT_TYPE_REFERENDUM);
-            voteIpRepository.save(voteIp);
-        }
-
         // ✅ НОТИФИКАЦИЯ
         UserEntity creator = userRepository.findByUsername(referendum.getCreatorName())
                 .orElse(null);
@@ -230,16 +203,7 @@ public class VoteServiceImpl implements VoteService {
             throw new IllegalArgumentException("Вече сте гласували в тази анкета.");
         }
 
-        // Проверка за IP лимит (3 гласа от един IP за едно събитие)
-        // За MultiPoll цялата анкета се брои като 1 глас
-        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
-            long ipVoteCount = voteIpRepository.countByIpAddressAndEventIdAndEventType(
-                    ipAddress, pollId, EVENT_TYPE_MULTI_POLL);
-            if (ipVoteCount >= MAX_VOTES_PER_IP) {
-                throw new IllegalStateException(
-                        "Достигнат е лимитът от " + MAX_VOTES_PER_IP + " гласа от този IP адрес за тази анкета.");
-            }
-        }
+        voteIpGuardService.reserveIpSlot(ipAddress, pollId, EVENT_TYPE_MULTI_POLL, user.getId());
 
         List<String> options = poll.getOptions();
 
@@ -283,12 +247,6 @@ public class VoteServiceImpl implements VoteService {
             vote.setOptionText(optionText);
 
             voteMultiPollRepository.save(vote);
-        }
-
-        // Записване на IP адреса в VoteIpEntity (цялата анкета е 1 глас)
-        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
-            VoteIpEntity voteIp = new VoteIpEntity(ipAddress, pollId, EVENT_TYPE_MULTI_POLL);
-            voteIpRepository.save(voteIp);
         }
 
         user.setTotalVotes(user.getTotalVotes() + 1);
