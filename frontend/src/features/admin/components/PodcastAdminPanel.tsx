@@ -40,6 +40,7 @@ export function PodcastAdminPanel({ enabled }: { enabled: boolean }) {
       toast.success("Епизодът е обновен");
       setEditing(null);
       queryClient.invalidateQueries({ queryKey: ["admin", "podcast-episodes"] });
+      queryClient.invalidateQueries({ queryKey: ["podcast", "episodes"] });
     },
     onError: (e) => toast.error(errorMessage(e, "Изтриването не успя")),
   });

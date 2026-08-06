@@ -5,6 +5,16 @@ import { cn } from "@/shared/lib/cn";
 
 const DEFAULT_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const DEFAULT_MAX_SIZE_BYTES = 8 * 1024 * 1024;
+const IMAGE_EXTENSION_PATTERN = /\.(jpe?g|png|gif|webp)$/i;
+
+function isAcceptedImage(file: File, acceptedTypes: string[]): boolean {
+  if (acceptedTypes.includes(file.type)) return true;
+  // Some browsers report an empty or generic MIME type for valid local files.
+  if ((!file.type || file.type === "application/octet-stream") && IMAGE_EXTENSION_PATTERN.test(file.name)) {
+    return true;
+  }
+  return false;
+}
 
 interface ImageDropzoneProps {
   files: File[];
@@ -43,7 +53,7 @@ export function ImageDropzone({
 
     const accepted: File[] = [];
     for (const file of Array.from(incoming)) {
-      if (!acceptedTypes.includes(file.type)) {
+      if (!isAcceptedImage(file, acceptedTypes)) {
         onError?.(`„${file.name}" не е поддържан формат.`);
         continue;
       }

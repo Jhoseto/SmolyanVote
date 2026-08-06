@@ -19,6 +19,7 @@ export function useUpdateReferendum() {
       eventsApi.updateReferendum(id, values, newImages, deleteImageIds),
     onSuccess: (detail, { id }) => {
       queryClient.setQueryData(referendumDetailQueryKey(id), detail);
+      void queryClient.invalidateQueries({ queryKey: referendumDetailQueryKey(id) });
       void queryClient.invalidateQueries({ queryKey: ["events", "catalog"] });
     },
   });

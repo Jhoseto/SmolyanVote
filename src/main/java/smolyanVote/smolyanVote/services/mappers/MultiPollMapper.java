@@ -7,6 +7,7 @@ import smolyanVote.smolyanVote.models.MultiPollImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.MultiPollImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.support.EventImageDefaults;
 import smolyanVote.smolyanVote.viewsAndDTO.ImageRefDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
 
@@ -57,19 +58,22 @@ public class MultiPollMapper {
         Optional<UserEntity> userOpt = userRepository.findByUsername(poll.getCreatorName());
         userOpt.ifPresent(dto::setCreator);
 
-        // Images
+        // Images — ignore placeholder rows when real uploads exist
         List<MultiPollImageEntity> images = imageRepository.findByMultiPoll_Id(poll.getId());
-        if (images != null && !images.isEmpty()) {
+        List<MultiPollImageEntity> realImages = images == null ? List.of() : images.stream()
+                .filter(img -> !EventImageDefaults.isPlaceholder(img.getImageUrl()))
+                .toList();
+        if (!realImages.isEmpty()) {
             List<String> urls = new ArrayList<>();
             List<ImageRefDTO> imageRefs = new ArrayList<>();
-            for (MultiPollImageEntity img : images) {
+            for (MultiPollImageEntity img : realImages) {
                 urls.add(img.getImageUrl());
                 imageRefs.add(new ImageRefDTO(img.getId(), img.getImageUrl()));
             }
             dto.setImageUrls(urls);
             dto.setImageRefs(imageRefs);
         } else {
-            dto.setImageUrls(List.of("/images/eventImages/defaultMultiPoll.jpg"));
+            dto.setImageUrls(List.of(EventImageDefaults.MULTI_POLL));
             dto.setImageRefs(List.of());
         }
 

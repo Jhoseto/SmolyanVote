@@ -8,12 +8,14 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
+import smolyanVote.smolyanVote.repositories.SimpleEventImageRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.SimpleEventService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
 import smolyanVote.smolyanVote.services.mappers.SimpleEventMapper;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.support.EventImageDefaults;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class SimpleEventServiceImpl implements SimpleEventService {
 
     private final SimpleEventRepository simpleEventRepository;
+    private final SimpleEventImageRepository simpleEventImageRepository;
     private final UserRepository userRepository;
     private final SimpleEventMapper simpleEventMapper;
     private final UserService userService;
@@ -36,12 +39,15 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
 
     public SimpleEventServiceImpl(
-            SimpleEventRepository simpleEventRepository, UserRepository userRepository,
+            SimpleEventRepository simpleEventRepository,
+            SimpleEventImageRepository simpleEventImageRepository,
+            UserRepository userRepository,
             SimpleEventMapper simpleEventMapper,
             UserService userService,
             ImageCloudinaryServiceImpl imageStorageService,
             VoteService voteService) {
         this.simpleEventRepository = simpleEventRepository;
+        this.simpleEventImageRepository = simpleEventImageRepository;
         this.userRepository = userRepository;
         this.simpleEventMapper = simpleEventMapper;
         this.userService = userService;
@@ -152,7 +158,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         // Ако няма качени изображения, добавяме default
         if (simpleEventEntity.getImages().isEmpty()) {
             SimpleEventImageEntity defaultImage = new SimpleEventImageEntity();
-            defaultImage.setImageUrl("/images/eventImages/defaultEvent.jpg");
+            defaultImage.setImageUrl(EventImageDefaults.SIMPLE_EVENT);
             defaultImage.setEvent(simpleEventEntity);
             simpleEventEntity.getImages().add(defaultImage);
         }
@@ -180,6 +186,10 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         SimpleEventEntity event = simpleEventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Събитието не е намерено."));
 
+        if (event.getImages() == null) {
+            event.setImages(new ArrayList<>());
+        }
+
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
         event.setLocation(dto.getLocation());
@@ -196,6 +206,17 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         }
 
         if (newImages != null) {
+            boolean hasNewUpload = false;
+            for (MultipartFile file : newImages) {
+                if (file != null && !file.isEmpty()) {
+                    hasNewUpload = true;
+                    break;
+                }
+            }
+            if (hasNewUpload) {
+                removePlaceholderImages(event);
+            }
+            List<SimpleEventImageEntity> added = new ArrayList<>();
             for (MultipartFile file : newImages) {
                 if (file != null && !file.isEmpty()) {
                     String imagePath = imageStorageService.saveSingleImage(file, event.getId());
@@ -203,12 +224,24 @@ public class SimpleEventServiceImpl implements SimpleEventService {
                     imageEntity.setImageUrl(imagePath);
                     imageEntity.setEvent(event);
                     event.getImages().add(imageEntity);
+                    added.add(imageEntity);
                 }
+            }
+            if (!added.isEmpty()) {
+                simpleEventImageRepository.saveAll(added);
             }
         }
 
         SimpleEventEntity saved = simpleEventRepository.saveAndFlush(event);
         return saved.getId();
+    }
+
+    private static void removePlaceholderImages(SimpleEventEntity event) {
+        if (event.getImages() == null) {
+            event.setImages(new ArrayList<>());
+            return;
+        }
+        event.getImages().removeIf(img -> EventImageDefaults.isPlaceholder(img.getImageUrl()));
     }
 
 }

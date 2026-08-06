@@ -2,7 +2,6 @@ package smolyanVote.smolyanVote.controllers.apiv1;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import org.apache.tika.Tika;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +13,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.services.interfaces.*;
+import smolyanVote.smolyanVote.services.support.ImageUploadValidator;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateMultiPollView;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.ApiMessageResponse;
@@ -23,10 +23,8 @@ import smolyanVote.smolyanVote.viewsAndDTO.apiv1.MultiPollDetailResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.ReferendumDetailResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.SimpleEventDetailResponse;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Public read endpoints for the events hub + the 3 detail pages
@@ -37,11 +35,6 @@ import java.util.Objects;
 @RequestMapping("/api/v1/events")
 public class EventsController {
 
-    private static final List<String> ALLOWED_IMAGE_MIME_TYPES =
-            List.of("image/jpeg", "image/png", "image/gif", "image/webp");
-    private static final List<String> ALLOWED_IMAGE_EXTENSIONS =
-            List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
-    private static final long MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
     private static final int MIN_OPTIONS = 2;
     private static final int MAX_OPTIONS = 10;
 
@@ -51,20 +44,22 @@ public class EventsController {
     private final MultiPollService multiPollService;
     private final UserService userService;
     private final DeleteEventsService deleteEventsService;
-    private final Tika tika = new Tika();
+    private final ImageUploadValidator imageUploadValidator;
 
     public EventsController(MainEventsService mainEventsService,
                                   SimpleEventService simpleEventService,
                                   ReferendumService referendumService,
                                   MultiPollService multiPollService,
                                   UserService userService,
-                                  DeleteEventsService deleteEventsService) {
+                                  DeleteEventsService deleteEventsService,
+                                  ImageUploadValidator imageUploadValidator) {
         this.mainEventsService = mainEventsService;
         this.simpleEventService = simpleEventService;
         this.referendumService = referendumService;
         this.multiPollService = multiPollService;
         this.userService = userService;
         this.deleteEventsService = deleteEventsService;
+        this.imageUploadValidator = imageUploadValidator;
     }
 
     @GetMapping
@@ -251,26 +246,37 @@ public class EventsController {
     @PutMapping(value = "/multipoll/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateMultiPoll(
             @PathVariable Long id,
-            @Valid @ModelAttribute CreateMultiPollView dto,
+            @RequestParam String title,
+            @RequestParam String description,
+            @RequestParam Locations location,
+            @RequestParam("options") List<String> options,
+            @RequestParam(value = "newImages", required = false) List<MultipartFile> newImages,
             @RequestParam(value = "deleteImageIds", required = false) List<Long> deleteImageIds) {
         UserEntity user = userService.getCurrentUser();
         if (user == null) return unauthenticated();
         if (user.getRole() != UserRole.ADMIN) return forbidden();
 
-        requireNonBlank(dto.getTitle(), "Заглавието е задължително.");
-        requireMaxLength(dto.getTitle(), 150, "Заглавието трябва да е до 150 символа.");
-        requireNonBlank(dto.getDescription(), "Описанието е задължително.");
-        requireMaxLength(dto.getDescription(), 1000, "Описанието трябва да е до 1000 символа.");
+        requireNonBlank(title, "Заглавието е задължително.");
+        requireMaxLength(title, 150, "Заглавието трябва да е до 150 символа.");
+        requireNonBlank(description, "Описанието е задължително.");
+        requireMaxLength(description, 1000, "Описанието трябва да е до 1000 символа.");
 
-        dto.setOptions(normalizeOptions(dto.getOptions()));
+        List<String> filteredOptions = normalizeOptions(options);
 
-        MultipartFile[] files = {dto.getImage1(), dto.getImage2(), dto.getImage3()};
-        for (MultipartFile file : files) {
-            validateImage(file);
+        if (newImages != null) {
+            for (MultipartFile file : newImages) {
+                validateImage(file);
+            }
         }
 
+        CreateMultiPollView dto = new CreateMultiPollView();
+        dto.setTitle(title.trim());
+        dto.setDescription(description.trim());
+        dto.setLocation(location);
+        dto.setOptions(filteredOptions);
+
         try {
-            Long updatedId = multiPollService.updateMultiPoll(id, dto, deleteImageIds);
+            Long updatedId = multiPollService.updateMultiPoll(id, dto, newImages, deleteImageIds);
             return ResponseEntity.ok(MultiPollDetailResponse.from(multiPollService.getMultiPollDetailSnapshot(updatedId)));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error(e.getMessage()));
@@ -346,27 +352,7 @@ public class EventsController {
     }
 
     private void validateImage(MultipartFile image) {
-        if (image == null || image.isEmpty()) return;
-
-        String originalFilename = Objects.requireNonNullElse(image.getOriginalFilename(), "").toLowerCase();
-        String browserType = image.getContentType();
-        if (browserType == null || !ALLOWED_IMAGE_MIME_TYPES.contains(browserType)) {
-            throw new IllegalArgumentException("Разрешени са само JPEG, PNG, GIF и WEBP файлове!");
-        }
-        if (ALLOWED_IMAGE_EXTENSIONS.stream().noneMatch(originalFilename::endsWith)) {
-            throw new IllegalArgumentException("Файлът трябва да е .jpg, .jpeg, .png, .gif или .webp!");
-        }
-        try {
-            String detectedType = tika.detect(image.getInputStream());
-            if (!ALLOWED_IMAGE_MIME_TYPES.contains(detectedType)) {
-                throw new IllegalArgumentException("Файлът не е валидно изображение (по съдържание)!");
-            }
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Проблем при валидиране на файл: " + e.getMessage());
-        }
-        if (image.getSize() > MAX_IMAGE_SIZE_BYTES) {
-            throw new IllegalArgumentException("Файлът не трябва да надвишава 8MB!");
-        }
+        imageUploadValidator.validateOptional(image, ImageUploadValidator.MAX_EVENT_IMAGE_BYTES);
     }
 
     // ===== Local exception handling — the global handler redirects HTML, wrong for a JSON API =====

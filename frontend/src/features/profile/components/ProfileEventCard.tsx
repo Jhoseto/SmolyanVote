@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/shared/ui";
 import { formatRelativeDate } from "@/shared/lib/formatRelativeDate";
 import type { ProfileEventItem } from "../types";
+import { pickEventCoverImage } from "@/features/events/lib/eventCoverImage";
 
 const DETAIL_PATH: Record<ProfileEventItem["eventType"], string> = {
   SIMPLEEVENT: "event",
@@ -17,7 +18,7 @@ const TYPE_LABEL: Record<ProfileEventItem["eventType"], string> = {
 
 /** Lean read-only summary card — legacy profile tabs link out to the full detail page, no inline voting here. */
 export function ProfileEventCard({ event }: { event: ProfileEventItem }) {
-  const image = event.images?.[0];
+  const image = pickEventCoverImage(event.images);
 
   return (
     <Link href={`/${DETAIL_PATH[event.eventType]}/${event.id}`} className="block h-full">

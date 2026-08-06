@@ -20,6 +20,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.support.ImageUploadValidator;
 import smolyanVote.smolyanVote.utils.SignalBoostRateLimiter;
 import smolyanVote.smolyanVote.utils.SmolyanRegionValidator;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.ApiMessageResponse;
@@ -52,12 +53,15 @@ public class SignalsController {
     private final SignalsService signalsService;
     private final UserService userService;
     private final SignalBoostRateLimiter boostRateLimiter;
+    private final ImageUploadValidator imageUploadValidator;
 
     public SignalsController(SignalsService signalsService, UserService userService,
-                             SignalBoostRateLimiter boostRateLimiter) {
+                             SignalBoostRateLimiter boostRateLimiter,
+                             ImageUploadValidator imageUploadValidator) {
         this.signalsService = signalsService;
         this.userService = userService;
         this.boostRateLimiter = boostRateLimiter;
+        this.imageUploadValidator = imageUploadValidator;
     }
 
     /** Full region dataset — frontend filters/sorts client-side (one fetch). */
@@ -170,8 +174,11 @@ public class SignalsController {
         BigDecimal lon = new BigDecimal(longitude);
 
         try {
+            imageUploadValidator.validateOptional(image, ImageUploadValidator.MAX_SIGNAL_IMAGE_BYTES);
             SignalsEntity created = signalsService.create(title, description, categoryEnum, lat, lon, image, currentUser);
             return ResponseEntity.ok(toDto(created, currentUser));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiMessageResponse.error(e.getMessage()));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ApiMessageResponse.error(e.getMessage()));
         }
@@ -208,8 +215,11 @@ public class SignalsController {
 
         SignalsCategory categoryEnum = SignalsCategory.valueOf(category.toUpperCase());
         try {
+            imageUploadValidator.validateOptional(image, ImageUploadValidator.MAX_SIGNAL_IMAGE_BYTES);
             SignalsEntity updated = signalsService.update(signal, title, description, categoryEnum, image, removeImage);
             return ResponseEntity.ok(toDto(updated, currentUser));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiMessageResponse.error(e.getMessage()));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ApiMessageResponse.error(e.getMessage()));
         }

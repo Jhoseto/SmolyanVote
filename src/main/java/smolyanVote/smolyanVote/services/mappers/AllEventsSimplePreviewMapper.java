@@ -7,9 +7,9 @@ import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
 import smolyanVote.smolyanVote.repositories.MultiPollImageRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.support.EventImageDefaults;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -53,16 +53,11 @@ public class AllEventsSimplePreviewMapper {
         view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(event.getTotalVotes());
 
-        List<SimpleEventImageEntity> images = simpleEventImageRepository.findByEventId(event.getId());
-        if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = new ArrayList<>();
-            for (SimpleEventImageEntity image : images) {
-                imageUrls.add(image.getImageUrl());
-            }
-            view.setImages(imageUrls);
-        } else {
-            view.setImages(List.of("/images/eventImages/defaultEvent.jpg"));
-        }
+        view.setImages(resolvePreviewImages(
+                simpleEventImageRepository.findByEventId(event.getId()).stream()
+                        .map(SimpleEventImageEntity::getImageUrl)
+                        .toList(),
+                EventImageDefaults.SIMPLE_EVENT));
 
         return view;
     }
@@ -87,16 +82,11 @@ public class AllEventsSimplePreviewMapper {
         view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(referendum.getTotalVotes());
 
-        List<ReferendumImageEntity> images = referendumImageRepository.findByReferendumId(referendum.getId());
-        if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = new ArrayList<>();
-            for (ReferendumImageEntity image : images) {
-                imageUrls.add(image.getImageUrl());
-            }
-            view.setImages(imageUrls);
-        } else {
-            view.setImages(List.of("/images/eventImages/defaultReferendum.jpg"));
-        }
+        view.setImages(resolvePreviewImages(
+                referendumImageRepository.findByReferendumId(referendum.getId()).stream()
+                        .map(ReferendumImageEntity::getImageUrl)
+                        .toList(),
+                EventImageDefaults.REFERENDUM));
 
         return view;
     }
@@ -121,17 +111,19 @@ public class AllEventsSimplePreviewMapper {
         view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(multiPoll.getTotalVotes());
 
-        List<MultiPollImageEntity> images = multiPollImageRepository.findByMultiPoll_Id(multiPoll.getId());
-        if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = new ArrayList<>();
-            for (MultiPollImageEntity image : images) {
-                imageUrls.add(image.getImageUrl());
-            }
-            view.setImages(imageUrls);
-        } else {
-            view.setImages(List.of("/images/eventImages/defaultMultiPoll.jpg"));
-        }
+        view.setImages(resolvePreviewImages(
+                multiPollImageRepository.findByMultiPoll_Id(multiPoll.getId()).stream()
+                        .map(MultiPollImageEntity::getImageUrl)
+                        .toList(),
+                EventImageDefaults.MULTI_POLL));
 
         return view;
+    }
+
+    private static List<String> resolvePreviewImages(List<String> storedUrls, String fallback) {
+        List<String> real = storedUrls == null ? List.of() : storedUrls.stream()
+                .filter(url -> !EventImageDefaults.isPlaceholder(url))
+                .toList();
+        return real.isEmpty() ? List.of(fallback) : real;
     }
 }

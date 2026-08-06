@@ -17,6 +17,7 @@ import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.ReferendumMapper;
+import smolyanVote.smolyanVote.services.support.EventImageDefaults;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
 import java.time.Instant;
@@ -169,6 +170,11 @@ public class ReferendumServiceImpl implements ReferendumService {
         }
 
         if (newImages != null) {
+            boolean hasNewUpload = newImages.stream().anyMatch(file -> file != null && !file.isEmpty());
+            if (hasNewUpload) {
+                removePlaceholderImages(referendum);
+            }
+            List<ReferendumImageEntity> added = new ArrayList<>();
             for (MultipartFile file : newImages) {
                 if (file != null && !file.isEmpty()) {
                     String imagePath = imageStorageService.saveSingleReferendumImage(file, referendum.getId());
@@ -176,12 +182,24 @@ public class ReferendumServiceImpl implements ReferendumService {
                     image.setImageUrl(imagePath);
                     image.setReferendum(referendum);
                     referendum.getImages().add(image);
+                    added.add(image);
                 }
+            }
+            if (!added.isEmpty()) {
+                imageRepository.saveAll(added);
             }
         }
 
-        ReferendumEntity saved = referendumRepository.save(referendum);
+        ReferendumEntity saved = referendumRepository.saveAndFlush(referendum);
         return saved.getId();
+    }
+
+    private static void removePlaceholderImages(ReferendumEntity referendum) {
+        if (referendum.getImages() == null) {
+            referendum.setImages(new ArrayList<>());
+            return;
+        }
+        referendum.getImages().removeIf(img -> EventImageDefaults.isPlaceholder(img.getImageUrl()));
     }
 
     @Transactional

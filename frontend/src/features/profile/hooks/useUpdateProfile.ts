@@ -12,6 +12,8 @@ export function useUpdateProfile() {
     mutationFn: (payload: UpdateProfilePayload) => profileApi.updateMe(payload),
     onSuccess: (updated) => {
       queryClient.setQueryData(profileQueryKey(updated.username), updated);
+      void queryClient.invalidateQueries({ queryKey: profileQueryKey(updated.username) });
+      void queryClient.invalidateQueries({ queryKey: ["users", "me"] });
     },
   });
 }

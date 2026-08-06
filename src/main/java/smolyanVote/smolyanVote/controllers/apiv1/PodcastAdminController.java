@@ -23,6 +23,7 @@ import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.PodcastService;
 import smolyanVote.smolyanVote.services.interfaces.SubscriptionService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.support.ImageUploadValidator;
 import smolyanVote.smolyanVote.viewsAndDTO.PodcastEpisodeDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.ApiMessageResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.CreatePodcastEpisodeRequest;
@@ -48,15 +49,18 @@ public class PodcastAdminController {
     private final UserService userService;
     private final SubscriptionService subscriptionService;
     private final NotificationService notificationService;
+    private final ImageUploadValidator imageUploadValidator;
 
     public PodcastAdminController(PodcastService podcastService,
                                   UserService userService,
                                   SubscriptionService subscriptionService,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  ImageUploadValidator imageUploadValidator) {
         this.podcastService = podcastService;
         this.userService = userService;
         this.subscriptionService = subscriptionService;
         this.notificationService = notificationService;
+        this.imageUploadValidator = imageUploadValidator;
     }
 
     @PostMapping(value = "/episodes", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -265,9 +269,10 @@ public class PodcastAdminController {
             if (imageFile.getSize() > MAX_IMAGE_BYTES) {
                 return "Корицата е по-голяма от 8MB.";
             }
-            String imageType = imageFile.getContentType();
-            if (imageType == null || !imageType.toLowerCase().startsWith("image/")) {
-                return "Невалиден формат на корицата.";
+            try {
+                imageUploadValidator.validateRequired(imageFile, MAX_IMAGE_BYTES);
+            } catch (IllegalArgumentException e) {
+                return e.getMessage();
             }
         }
         return null;

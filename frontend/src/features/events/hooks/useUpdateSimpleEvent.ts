@@ -19,6 +19,7 @@ export function useUpdateSimpleEvent() {
       eventsApi.updateSimpleEvent(id, values, newImages, deleteImageIds),
     onSuccess: (detail, { id }) => {
       queryClient.setQueryData(simpleEventDetailQueryKey(id), detail);
+      void queryClient.invalidateQueries({ queryKey: simpleEventDetailQueryKey(id) });
       void queryClient.invalidateQueries({ queryKey: ["events", "catalog"] });
     },
   });

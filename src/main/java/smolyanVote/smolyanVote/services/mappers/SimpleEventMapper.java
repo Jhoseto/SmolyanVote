@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.SimpleEventImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.support.EventImageDefaults;
 import smolyanVote.smolyanVote.viewsAndDTO.ImageRefDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
@@ -40,18 +41,21 @@ public class SimpleEventMapper {
 
         // Снимки
         List<SimpleEventImageEntity> images = imageRepository.findByEventId(event.getId());
+        List<SimpleEventImageEntity> realImages = images == null ? List.of() : images.stream()
+                .filter(img -> !EventImageDefaults.isPlaceholder(img.getImageUrl()))
+                .toList();
 
-        if (images != null && !images.isEmpty()) {
+        if (!realImages.isEmpty()) {
             List<String> imageUrls = new ArrayList<>();
             List<ImageRefDTO> imageRefs = new ArrayList<>();
-            for (SimpleEventImageEntity image : images) {
-                imageUrls.add(image.getImageUrl()); // Get the image URL
+            for (SimpleEventImageEntity image : realImages) {
+                imageUrls.add(image.getImageUrl());
                 imageRefs.add(new ImageRefDTO(image.getId(), image.getImageUrl()));
             }
             view.setImages(imageUrls);
             view.setImageRefs(imageRefs);
         } else {
-            view.setImages(List.of("/images/eventImages/defaultEvent.jpg"));
+            view.setImages(List.of(EventImageDefaults.SIMPLE_EVENT));
             view.setImageRefs(List.of());
         }
 

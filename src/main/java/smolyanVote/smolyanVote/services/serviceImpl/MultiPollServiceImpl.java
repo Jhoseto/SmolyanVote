@@ -19,6 +19,7 @@ import smolyanVote.smolyanVote.repositories.VoteMultiPollRepository;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.support.ReputationCounterService;
 import smolyanVote.smolyanVote.services.mappers.MultiPollMapper;
+import smolyanVote.smolyanVote.services.support.EventImageDefaults;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateMultiPollView;
 import smolyanVote.smolyanVote.services.interfaces.MultiPollService;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
@@ -117,9 +118,13 @@ public class MultiPollServiceImpl implements MultiPollService {
     @LogActivity(action = ActivityActionEnum.EDIT_MULTI_POLL, entityType = ActivityTypeEnum.MULTI_POLL,
             entityIdParam = "id", details = "Title: {title}, Location: {location}", includeTitle = true)
 
-    public Long updateMultiPoll(Long id, CreateMultiPollView dto, List<Long> deleteImageIds) {
+    public Long updateMultiPoll(Long id, CreateMultiPollView dto, List<MultipartFile> newImages, List<Long> deleteImageIds) {
         MultiPollEntity poll = multiPollRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Анкетата не е намерена."));
+
+        if (poll.getImages() == null) {
+            poll.setImages(new ArrayList<>());
+        }
 
         poll.setTitle(dto.getTitle());
         poll.setDescription(dto.getDescription());
@@ -139,7 +144,17 @@ public class MultiPollServiceImpl implements MultiPollService {
             poll.getImages().removeAll(toRemove);
         }
 
-        List<MultipartFile> newFiles = List.of(dto.getImage1(), dto.getImage2(), dto.getImage3());
+        List<MultipartFile> newFiles = newImages != null ? newImages : List.of();
+        long incomingCount = newFiles.stream().filter(file -> file != null && !file.isEmpty()).count();
+        if (poll.getImages().size() + incomingCount > 3) {
+            throw new IllegalArgumentException("Максимум 3 снимки са разрешени.");
+        }
+
+        if (incomingCount > 0) {
+            removePlaceholderImages(poll);
+        }
+
+        List<MultiPollImageEntity> added = new ArrayList<>();
         for (MultipartFile file : newFiles) {
             if (file != null && !file.isEmpty()) {
                 String imageUrl = imageCloudinaryService.saveMultiPollImage(file, poll.getId());
@@ -147,11 +162,23 @@ public class MultiPollServiceImpl implements MultiPollService {
                 imageEntity.setImageUrl(imageUrl);
                 imageEntity.setMultiPoll(poll);
                 poll.getImages().add(imageEntity);
+                added.add(imageEntity);
             }
         }
+        if (!added.isEmpty()) {
+            imageRepository.saveAll(added);
+        }
 
-        MultiPollEntity saved = multiPollRepository.save(poll);
+        MultiPollEntity saved = multiPollRepository.saveAndFlush(poll);
         return saved.getId();
+    }
+
+    private static void removePlaceholderImages(MultiPollEntity poll) {
+        if (poll.getImages() == null) {
+            poll.setImages(new ArrayList<>());
+            return;
+        }
+        poll.getImages().removeIf(img -> EventImageDefaults.isPlaceholder(img.getImageUrl()));
     }
 
 

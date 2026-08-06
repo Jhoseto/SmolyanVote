@@ -19,6 +19,7 @@ export function useUpdateMultiPoll() {
       eventsApi.updateMultiPoll(id, values, newImages, deleteImageIds),
     onSuccess: (detail, { id }) => {
       queryClient.setQueryData(multiPollDetailQueryKey(id), detail);
+      void queryClient.invalidateQueries({ queryKey: multiPollDetailQueryKey(id) });
       void queryClient.invalidateQueries({ queryKey: ["events", "catalog"] });
     },
   });

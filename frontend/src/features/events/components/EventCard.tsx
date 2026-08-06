@@ -4,6 +4,7 @@ import { cn } from "@/shared/lib/cn";
 import type { EventListItem } from "../types";
 import { locationLabel } from "../data/locations";
 import { eventDetailUrl, EVENT_TYPE_LABEL, EVENT_TYPE_ICON } from "../lib/eventLinks";
+import { pickEventCoverImage } from "../lib/eventCoverImage";
 import { formatRelativeDate } from "@/shared/lib/formatRelativeDate";
 
 const TYPE_BADGE_CLASSES: Record<EventListItem["eventType"], string> = {
@@ -16,7 +17,7 @@ const TYPE_BADGE_CLASSES: Record<EventListItem["eventType"], string> = {
 };
 
 export function EventCard({ event }: { event: EventListItem }) {
-  const image = event.images?.[0];
+  const image = pickEventCoverImage(event.images);
   const location = locationLabel(event.location);
 
   return (

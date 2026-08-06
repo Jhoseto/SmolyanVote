@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateMultiPollView;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
 
@@ -19,8 +20,8 @@ public interface MultiPollService {
 
     /**
      * Admin inline edit: updates title/description/location/options, removes
-     * images whose id is in {@code deleteImageIds}, appends new images from {@code dto}.
+     * images whose id is in {@code deleteImageIds}, appends {@code newImages}.
      * @return the id of the updated poll (used by the JSON API to re-fetch the fresh detail).
      */
-    Long updateMultiPoll(Long id, CreateMultiPollView dto, List<Long> deleteImageIds);
+    Long updateMultiPoll(Long id, CreateMultiPollView dto, List<MultipartFile> newImages, List<Long> deleteImageIds);
 }

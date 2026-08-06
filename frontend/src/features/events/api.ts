@@ -117,9 +117,8 @@ export const eventsApi = {
     form.append("description", values.description);
     form.append("location", values.location);
     values.options.filter((o) => o.trim().length > 0).forEach((option) => form.append("options", option));
-    // MultiPoll edit reuses the 3 fixed image slots from `CreateMultiPollView` (no `newImages` array param server-side).
-    newImages.slice(0, 3).forEach((file, index) => form.append(`image${index + 1}`, file));
+    newImages.forEach((file) => form.append("newImages", file));
     deleteImageIds.forEach((imageId) => form.append("deleteImageIds", String(imageId)));
-    return apiClient.putForm<MultiPollDetail>(`/api/v1/events/multipoll/${id}`, { body: form, direct: true });
+    return apiClient.putForm<MultiPollDetail>(`/api/v1/events/multipoll/${id}`, { body: form });
   },
 };

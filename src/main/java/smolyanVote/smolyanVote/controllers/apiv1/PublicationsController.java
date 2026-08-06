@@ -2,13 +2,12 @@ package smolyanVote.smolyanVote.controllers.apiv1;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import org.apache.tika.Tika;
-import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -34,6 +33,7 @@ import smolyanVote.smolyanVote.services.interfaces.PublicationLinkMetadataServic
 import smolyanVote.smolyanVote.services.interfaces.PublicationLinkValidationService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.support.ImageUploadValidator;
 import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
@@ -65,11 +65,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/v1/publications")
 public class PublicationsController {
 
-    private static final List<String> ALLOWED_IMAGE_MIME_TYPES =
-            List.of("image/jpeg", "image/png", "image/gif", "image/webp");
-    private static final List<String> ALLOWED_IMAGE_EXTENSIONS =
-            List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
-    private static final long MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
     private static final int MAX_PUBLICATIONS_PER_HOUR = 5;
 
     private final PublicationService publicationService;
@@ -79,7 +74,7 @@ public class PublicationsController {
     private final PublicationLinkValidationService linkValidationService;
     private final PublicationLinkMetadataService linkMetadataService;
     private final PublicationRepository publicationRepository;
-    private final Tika tika = new Tika();
+    private final ImageUploadValidator imageUploadValidator;
 
     public PublicationsController(PublicationService publicationService,
                                         PublicationDetailService publicationDetailService,
@@ -87,7 +82,8 @@ public class PublicationsController {
                                         ImageCloudinaryServiceImpl imageCloudinaryService,
                                         PublicationLinkValidationService linkValidationService,
                                         PublicationLinkMetadataService linkMetadataService,
-                                        PublicationRepository publicationRepository) {
+                                        PublicationRepository publicationRepository,
+                                        ImageUploadValidator imageUploadValidator) {
         this.publicationService = publicationService;
         this.publicationDetailService = publicationDetailService;
         this.userService = userService;
@@ -95,6 +91,7 @@ public class PublicationsController {
         this.linkValidationService = linkValidationService;
         this.linkMetadataService = linkMetadataService;
         this.publicationRepository = publicationRepository;
+        this.imageUploadValidator = imageUploadValidator;
     }
 
     @GetMapping
@@ -328,29 +325,7 @@ public class PublicationsController {
     }
 
     private void validateImage(MultipartFile image) {
-        if (image == null || image.isEmpty()) {
-            throw new IllegalArgumentException("Не е избран файл.");
-        }
-        if (image.getSize() > MAX_IMAGE_SIZE_BYTES) {
-            throw new IllegalArgumentException("Файлът не трябва да надвишава 10MB.");
-        }
-
-        String originalFilename = Objects.requireNonNullElse(image.getOriginalFilename(), "").toLowerCase();
-        String browserType = image.getContentType();
-        if (browserType == null || !ALLOWED_IMAGE_MIME_TYPES.contains(browserType)) {
-            throw new IllegalArgumentException("Разрешени са само JPEG, PNG, GIF и WEBP файлове!");
-        }
-        if (ALLOWED_IMAGE_EXTENSIONS.stream().noneMatch(originalFilename::endsWith)) {
-            throw new IllegalArgumentException("Файлът трябва да е .jpg, .jpeg, .png, .gif или .webp!");
-        }
-        try {
-            String detectedType = tika.detect(image.getInputStream());
-            if (!ALLOWED_IMAGE_MIME_TYPES.contains(detectedType)) {
-                throw new IllegalArgumentException("Файлът не е валидно изображение (по съдържание)!");
-            }
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Проблем при валидиране на файл: " + e.getMessage());
-        }
+        imageUploadValidator.validateRequired(image, ImageUploadValidator.MAX_PUBLICATION_IMAGE_BYTES);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

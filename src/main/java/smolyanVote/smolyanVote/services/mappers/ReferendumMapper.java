@@ -7,6 +7,7 @@ import smolyanVote.smolyanVote.models.ReferendumImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.support.EventImageDefaults;
 import smolyanVote.smolyanVote.viewsAndDTO.ImageRefDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
@@ -36,18 +37,21 @@ public class ReferendumMapper {
 
         // Снимки
         List<ReferendumImageEntity> images = referendumImageRepository.findByReferendumId(referendum.getId());
+        List<ReferendumImageEntity> realImages = images == null ? List.of() : images.stream()
+                .filter(img -> !EventImageDefaults.isPlaceholder(img.getImageUrl()))
+                .toList();
 
-        if (images != null && !images.isEmpty()) {
+        if (!realImages.isEmpty()) {
             List<String> imageUrls = new ArrayList<>();
             List<ImageRefDTO> imageRefs = new ArrayList<>();
-            for (ReferendumImageEntity image : images) {
-                imageUrls.add(image.getImageUrl()); // Вземаме URL на всяка снимка
+            for (ReferendumImageEntity image : realImages) {
+                imageUrls.add(image.getImageUrl());
                 imageRefs.add(new ImageRefDTO(image.getId(), image.getImageUrl()));
             }
             view.setImageUrls(imageUrls);
             view.setImageRefs(imageRefs);
         } else {
-            view.setImageUrls(List.of("/images/eventImages/defaultReferendum.jpg")); // Default изображение
+            view.setImageUrls(List.of(EventImageDefaults.REFERENDUM));
             view.setImageRefs(List.of());
         }
 
