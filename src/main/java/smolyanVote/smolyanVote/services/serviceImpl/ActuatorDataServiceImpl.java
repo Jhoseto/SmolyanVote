@@ -97,16 +97,18 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
         Map<String, Object> appInfo = new HashMap<>();
 
         try {
-            // Uptime - JVM guaranteed
             long uptimeMillis = ManagementFactory.getRuntimeMXBean().getUptime();
             long uptimeMinutes = uptimeMillis / (1000 * 60);
             appInfo.put("uptimeMinutes", uptimeMinutes);
+            appInfo.put("uptimeFormatted", formatUptime(uptimeMillis));
 
-            // JVM Info - guaranteed
+            appInfo.put("name", environment.getProperty("spring.application.name", "smolyanVote"));
+            appInfo.put("applicationName", appInfo.get("name"));
+            appInfo.put("version", environment.getProperty("spring.application.version", "1"));
+            appInfo.put("appVersion", appInfo.get("version"));
+
             appInfo.put("javaVersion", System.getProperty("java.version"));
             appInfo.put("jvmName", ManagementFactory.getRuntimeMXBean().getVmName());
-
-            // Environment info - production safe
             appInfo.put("environment", getEnvironmentName());
             appInfo.put("serverPort", environment.getProperty("server.port", "unknown"));
 
@@ -210,9 +212,26 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
         try {
             Timer httpTimer = meterRegistry.find("http.server.requests").timer();
             if (httpTimer != null && httpTimer.count() > 0) {
-                responseMetrics.put("averageResponseTime", Math.round(httpTimer.mean(TimeUnit.MILLISECONDS) * 100.0) / 100.0);
-                responseMetrics.put("maxResponseTime", Math.round(httpTimer.max(TimeUnit.MILLISECONDS) * 100.0) / 100.0);
+                double avg = Math.round(httpTimer.mean(TimeUnit.MILLISECONDS) * 100.0) / 100.0;
+                double max = Math.round(httpTimer.max(TimeUnit.MILLISECONDS) * 100.0) / 100.0;
+                responseMetrics.put("averageResponseTime", avg);
+                responseMetrics.put("average", avg);
+                responseMetrics.put("avg", avg);
+                responseMetrics.put("maxResponseTime", max);
+                responseMetrics.put("max", max);
+                responseMetrics.put("maximum", max);
                 responseMetrics.put("requestCount", httpTimer.count());
+                // Percentiles only when histogram is enabled in Micrometer
+                double p95 = percentileMs(httpTimer, 0.95);
+                double p99 = percentileMs(httpTimer, 0.99);
+                if (p95 >= 0) {
+                    responseMetrics.put("p95", p95);
+                    responseMetrics.put("percentile95", p95);
+                }
+                if (p99 >= 0) {
+                    responseMetrics.put("p99", p99);
+                    responseMetrics.put("percentile99", p99);
+                }
             } else {
                 responseMetrics.put("averageResponseTime", 0.0);
                 responseMetrics.put("maxResponseTime", 0.0);
@@ -234,11 +253,19 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
             double count200 = getHttpStatusCount("200");
             double count404 = getHttpStatusCount("404");
             double count500 = getHttpStatusCount("500");
+            HttpStatusBuckets buckets = getHttpStatusBuckets();
 
             statusMetrics.put("status200", count200);
+            statusMetrics.put("200", count200);
             statusMetrics.put("status404", count404);
+            statusMetrics.put("404", count404);
             statusMetrics.put("status500", count500);
-            statusMetrics.put("total", count200 + count404 + count500);
+            statusMetrics.put("500", count500);
+            statusMetrics.put("2xx", buckets.twoXx);
+            statusMetrics.put("3xx", buckets.threeXx);
+            statusMetrics.put("4xx", buckets.fourXx);
+            statusMetrics.put("5xx", buckets.fiveXx);
+            statusMetrics.put("total", buckets.twoXx + buckets.threeXx + buckets.fourXx + buckets.fiveXx);
 
         } catch (Exception e) {
             statusMetrics.put("error", "HTTP status metrics unavailable");
@@ -258,18 +285,30 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
             jvmMetrics.put("heapMemoryUsed", memoryBean.getHeapMemoryUsage().getUsed());
             jvmMetrics.put("heapMemoryMax", memoryBean.getHeapMemoryUsage().getMax());
             jvmMetrics.put("nonHeapMemoryUsed", memoryBean.getNonHeapMemoryUsage().getUsed());
+            jvmMetrics.put("heapUsed", memoryBean.getHeapMemoryUsage().getUsed());
+            jvmMetrics.put("usedHeap", memoryBean.getHeapMemoryUsage().getUsed());
+            jvmMetrics.put("heapMax", memoryBean.getHeapMemoryUsage().getMax());
+            jvmMetrics.put("maxHeap", memoryBean.getHeapMemoryUsage().getMax());
+            jvmMetrics.put("nonHeapUsed", memoryBean.getNonHeapMemoryUsage().getUsed());
+            jvmMetrics.put("usedNonHeap", memoryBean.getNonHeapMemoryUsage().getUsed());
 
-            // Thread info - guaranteed
             jvmMetrics.put("threadsLive", ManagementFactory.getThreadMXBean().getThreadCount());
+            jvmMetrics.put("liveThreads", ManagementFactory.getThreadMXBean().getThreadCount());
+            jvmMetrics.put("threadCount", ManagementFactory.getThreadMXBean().getThreadCount());
             jvmMetrics.put("threadsPeak", ManagementFactory.getThreadMXBean().getPeakThreadCount());
 
-            // GC info - with safety
             try {
                 long gcTime = ManagementFactory.getGarbageCollectorMXBeans()
                         .stream()
                         .mapToLong(gc -> gc.getCollectionTime())
                         .sum();
+                long gcCount = ManagementFactory.getGarbageCollectorMXBeans()
+                        .stream()
+                        .mapToLong(gc -> gc.getCollectionCount())
+                        .sum();
                 jvmMetrics.put("gcTimeMs", gcTime);
+                jvmMetrics.put("gcCount", gcCount);
+                jvmMetrics.put("garbageCollectionCount", gcCount);
             } catch (Exception e) {
                 jvmMetrics.put("gcTimeMs", "N/A");
             }
@@ -303,10 +342,15 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
 
                         if (totalSpace > 0) {
                             diskInfo.put("location", location.getAbsolutePath());
+                            diskInfo.put("total", totalSpace);
+                            diskInfo.put("totalSpace", totalSpace);
+                            diskInfo.put("free", freeSpace);
+                            diskInfo.put("freeSpace", freeSpace);
                             diskInfo.put("totalSpaceGB", Math.round(totalSpace / (1024.0 * 1024.0 * 1024.0) * 100.0) / 100.0);
                             diskInfo.put("freeSpaceGB", Math.round(freeSpace / (1024.0 * 1024.0 * 1024.0) * 100.0) / 100.0);
                             diskInfo.put("usedSpaceGB", Math.round(usedSpace / (1024.0 * 1024.0 * 1024.0) * 100.0) / 100.0);
                             diskInfo.put("usagePercent", Math.round((double) usedSpace / totalSpace * 100.0 * 100.0) / 100.0);
+                            diskInfo.put("usedPercent", diskInfo.get("usagePercent"));
                             break;
                         }
                     }
@@ -336,11 +380,18 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
             // HikariCP metrics - may not be enabled by default
             Gauge activeConnections = meterRegistry.find("hikaricp.connections.active").gauge();
             Gauge totalConnections = meterRegistry.find("hikaricp.connections").gauge();
+            Gauge idleConnections = meterRegistry.find("hikaricp.connections.idle").gauge();
+            Gauge maxConnections = meterRegistry.find("hikaricp.connections.max").gauge();
             Gauge pendingConnections = meterRegistry.find("hikaricp.connections.pending").gauge();
 
             if (activeConnections != null) {
                 poolInfo.put("active", Math.round(activeConnections.value()));
+                poolInfo.put("activeConnections", Math.round(activeConnections.value()));
                 poolInfo.put("total", totalConnections != null ? Math.round(totalConnections.value()) : "N/A");
+                poolInfo.put("idle", idleConnections != null ? Math.round(idleConnections.value()) : "N/A");
+                poolInfo.put("idleConnections", poolInfo.get("idle"));
+                poolInfo.put("max", maxConnections != null ? Math.round(maxConnections.value()) : "N/A");
+                poolInfo.put("maxConnections", poolInfo.get("max"));
                 poolInfo.put("pending", pendingConnections != null ? Math.round(pendingConnections.value()) : "N/A");
                 poolInfo.put("metricsEnabled", true);
             } else {
@@ -388,8 +439,9 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
         Map<String, Object> errors = new HashMap<>();
 
         try {
-            double http5xxCount = getHttpStatusCount("500");
+            double http5xxCount = getHttp5xxCount();
             errors.put("http5xxCount", http5xxCount);
+            errors.put("totalErrors", http5xxCount);
 
             // JVM Error indicators
             long totalGcTime = ManagementFactory.getGarbageCollectorMXBeans()
@@ -411,17 +463,23 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
 
         try {
             double totalRequests = getHttpRequestCount();
-            double errorRequests = getHttpStatusCount("500");
+            double errorRequests = getHttp5xxCount();
 
             if (totalRequests > 0) {
                 double errorRate = (errorRequests / totalRequests) * 100;
                 errorRates.put("httpErrorRate", Math.round(errorRate * 100.0) / 100.0);
+                errorRates.put("errorRate", errorRates.get("httpErrorRate"));
+                errorRates.put("rate", errorRates.get("httpErrorRate"));
                 errorRates.put("totalRequests", totalRequests);
                 errorRates.put("errorRequests", errorRequests);
+                errorRates.put("totalErrors", errorRequests);
+                errorRates.put("total", errorRequests);
             } else {
                 errorRates.put("httpErrorRate", 0.0);
+                errorRates.put("errorRate", 0.0);
                 errorRates.put("totalRequests", 0.0);
                 errorRates.put("errorRequests", 0.0);
+                errorRates.put("totalErrors", 0.0);
             }
 
         } catch (Exception e) {
@@ -480,6 +538,62 @@ public class ActuatorDataServiceImpl implements ActuatorDataService {
         } catch (Exception e) {
             return 0.0;
         }
+    }
+
+    private double getHttp5xxCount() {
+        return getHttpStatusBuckets().fiveXx;
+    }
+
+    private HttpStatusBuckets getHttpStatusBuckets() {
+        HttpStatusBuckets buckets = new HttpStatusBuckets();
+        try {
+            meterRegistry.find("http.server.requests").timers().forEach(timer -> {
+                String status = timer.getId().getTag("status");
+                if (status == null) return;
+                try {
+                    int code = Integer.parseInt(status);
+                    double count = timer.count();
+                    if (code >= 200 && code < 300) buckets.twoXx += count;
+                    else if (code >= 300 && code < 400) buckets.threeXx += count;
+                    else if (code >= 400 && code < 500) buckets.fourXx += count;
+                    else if (code >= 500) buckets.fiveXx += count;
+                } catch (NumberFormatException ignored) {
+                    // non-numeric status tag
+                }
+            });
+        } catch (Exception ignored) {
+            // meters unavailable
+        }
+        return buckets;
+    }
+
+    private double percentileMs(Timer timer, double percentile) {
+        try {
+            return Math.round(timer.percentile(percentile, TimeUnit.MILLISECONDS) * 100.0) / 100.0;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private static String formatUptime(long uptimeMillis) {
+        long totalMinutes = uptimeMillis / (1000 * 60);
+        long days = totalMinutes / (60 * 24);
+        long hours = (totalMinutes / 60) % 24;
+        long minutes = totalMinutes % 60;
+        if (days > 0) {
+            return days + "д " + hours + "ч " + minutes + "м";
+        }
+        if (hours > 0) {
+            return hours + "ч " + minutes + "м";
+        }
+        return minutes + "м";
+    }
+
+    private static final class HttpStatusBuckets {
+        double twoXx;
+        double threeXx;
+        double fourXx;
+        double fiveXx;
     }
 
     private String resolveEnvironmentVariable(String propertyName, String envVarName) {

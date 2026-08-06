@@ -26,6 +26,13 @@ export function formatNumber(value: unknown): string {
   return new Intl.NumberFormat("bg-BG").format(n);
 }
 
+/** Number when possible; otherwise plain text (e.g. "Metrics not enabled"). */
+export function formatMetricValue(value: unknown): string {
+  const n = Number(value);
+  if (Number.isFinite(n)) return formatNumber(n);
+  return asString(value);
+}
+
 export function asString(value: unknown, fallback = "—"): string {
   if (value == null) return fallback;
   if (typeof value === "string") return value || fallback;

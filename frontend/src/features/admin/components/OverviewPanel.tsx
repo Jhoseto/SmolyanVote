@@ -78,7 +78,16 @@ export function OverviewPanel({ enabled }: { enabled: boolean }) {
             <li>Сигнали: {data.content.signals}</li>
             <li>Епизоди: {data.content.podcastEpisodes}</li>
             <li className="flex items-center gap-2">
-              Системно здраве: <StatusPill status={alerts.some((a) => a.level === "critical") ? "DOWN" : "UP"} />
+              Системно здраве:{" "}
+              <StatusPill
+                status={
+                  alerts.some((a) => a.level === "critical")
+                    ? "DOWN"
+                    : alerts.some((a) => a.level === "warning")
+                      ? "WARNING"
+                      : "UP"
+                }
+              />
             </li>
           </ul>
         </section>

@@ -11,6 +11,7 @@ import {
   formatMs,
   formatNumber,
   formatPercent,
+  formatMetricValue,
   pick,
 } from "../lib/formatters";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -96,7 +97,7 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
             { label: "Статус", value: healthStatus, tone: healthStatus.toLowerCase().includes("up") ? "ok" : "bad" },
             { label: "Приложение", value: asString(pick(aggregate.appInfo, "name", "applicationName")) },
             { label: "Версия", value: asString(pick(aggregate.appInfo, "version", "appVersion")) },
-            { label: "Uptime", value: asString(pick(aggregate.appInfo, "uptime", "uptimeFormatted")) },
+            { label: "Uptime", value: asString(pick(aggregate.appInfo, "uptimeFormatted", "uptime", "uptimeMinutes")) },
           ]}
         />
       </CollapsibleSection>
@@ -107,12 +108,12 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
             { label: "Database", value: dbStatus, tone: dbStatus.toLowerCase().includes("up") ? "ok" : "bad" },
             {
               label: "Cloudinary",
-              value: cloudStatus,
+              value: cloudinary.configured === false ? "NOT CONFIGURED" : cloudStatus,
               tone: cloudStatus.toLowerCase().includes("up") ? "ok" : "warn",
             },
             {
               label: "Email",
-              value: emailStatus,
+              value: email.configured === false ? "NOT CONFIGURED" : emailStatus,
               tone: emailStatus.toLowerCase().includes("up") ? "ok" : "warn",
             },
           ]}
@@ -149,8 +150,8 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
       <CollapsibleSection title="Response time" icon="bi-speedometer2" defaultOpen={false}>
         <MetricGrid
           items={[
-            { label: "Avg", value: formatMs(pick(responseTime, "average", "avg", "mean")) },
-            { label: "Max", value: formatMs(pick(responseTime, "max", "maximum")) },
+            { label: "Avg", value: formatMs(pick(responseTime, "average", "avg", "mean", "averageResponseTime")) },
+            { label: "Max", value: formatMs(pick(responseTime, "max", "maximum", "maxResponseTime")) },
             { label: "P95", value: formatMs(pick(responseTime, "p95", "percentile95")) },
             { label: "P99", value: formatMs(pick(responseTime, "p99", "percentile99")) },
           ]}
@@ -164,9 +165,9 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
             { label: "3xx", value: formatNumber(pick(httpStatus, "3xx", "status3xx")) },
             { label: "4xx", value: formatNumber(pick(httpStatus, "4xx", "status4xx")), tone: "warn" },
             { label: "5xx", value: formatNumber(pick(httpStatus, "5xx", "status5xx")), tone: "bad" },
-            { label: "200", value: formatNumber(dig(httpStatus, "statuses.200") ?? pick(httpStatus, "200")) },
-            { label: "404", value: formatNumber(dig(httpStatus, "statuses.404") ?? pick(httpStatus, "404")) },
-            { label: "500", value: formatNumber(dig(httpStatus, "statuses.500") ?? pick(httpStatus, "500")) },
+            { label: "200", value: formatNumber(pick(httpStatus, "200", "status200") ?? dig(httpStatus, "statuses.200")) },
+            { label: "404", value: formatNumber(pick(httpStatus, "404", "status404") ?? dig(httpStatus, "statuses.404")) },
+            { label: "500", value: formatNumber(pick(httpStatus, "500", "status500") ?? dig(httpStatus, "statuses.500")) },
           ]}
         />
       </CollapsibleSection>
@@ -176,23 +177,37 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
           items={[
             {
               label: "Heap used",
-              value: formatBytes(pick(aggregate.jvmMetrics, "heapUsed", "usedHeap")),
+              value: formatBytes(
+                pick(aggregate.jvmMetrics, "heapUsed", "usedHeap", "heapMemoryUsed"),
+              ),
             },
             {
               label: "Heap max",
-              value: formatBytes(pick(aggregate.jvmMetrics, "heapMax", "maxHeap")),
+              value: formatBytes(
+                pick(aggregate.jvmMetrics, "heapMax", "maxHeap", "heapMemoryMax"),
+              ),
             },
             {
               label: "Non-heap",
-              value: formatBytes(pick(aggregate.jvmMetrics, "nonHeapUsed", "usedNonHeap")),
+              value: formatBytes(
+                pick(aggregate.jvmMetrics, "nonHeapUsed", "usedNonHeap", "nonHeapMemoryUsed"),
+              ),
             },
             {
               label: "GC count",
-              value: formatNumber(pick(aggregate.jvmMetrics, "gcCount", "garbageCollectionCount")),
+              value: formatNumber(
+                pick(aggregate.jvmMetrics, "gcCount", "garbageCollectionCount"),
+              ),
+            },
+            {
+              label: "GC time",
+              value: formatMs(pick(aggregate.jvmMetrics, "gcTimeMs")),
             },
             {
               label: "Threads live",
-              value: formatNumber(pick(aggregate.jvmMetrics, "liveThreads", "threadCount")),
+              value: formatNumber(
+                pick(aggregate.jvmMetrics, "liveThreads", "threadCount", "threadsLive"),
+              ),
             },
           ]}
         />
@@ -215,19 +230,19 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
             },
             {
               label: "DB pool active",
-              value: formatNumber(pick(aggregate.dbPool, "active", "activeConnections")),
+              value: formatMetricValue(pick(aggregate.dbPool, "active", "activeConnections")),
             },
             {
               label: "DB pool idle",
-              value: formatNumber(pick(aggregate.dbPool, "idle", "idleConnections")),
+              value: formatMetricValue(pick(aggregate.dbPool, "idle", "idleConnections")),
             },
             {
               label: "DB pool max",
-              value: formatNumber(pick(aggregate.dbPool, "max", "maxConnections")),
+              value: formatMetricValue(pick(aggregate.dbPool, "max", "maxConnections")),
             },
             {
               label: "Memory detail",
-              value: formatBytes(pick(memory, "used", "heapUsed")),
+              value: formatBytes(pick(memory, "heapUsed", "used")),
             },
           ]}
         />
@@ -238,16 +253,24 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
           items={[
             {
               label: "Error rate",
-              value: formatPercent(pick(aggregate.errorRates, "errorRate", "rate")),
+              value: formatPercent(
+                pick(aggregate.errorRates, "errorRate", "rate", "httpErrorRate"),
+              ),
               tone: "bad",
             },
             {
-              label: "Errors / min",
-              value: formatNumber(pick(aggregate.errorRates, "errorsPerMinute", "perMinute")),
+              label: "HTTP 5xx",
+              value: formatNumber(
+                pick(aggregate.errorRates, "errorRequests", "totalErrors", "total"),
+              ),
             },
             {
-              label: "Total errors",
-              value: formatNumber(pick(aggregate.errorRates, "totalErrors", "total")),
+              label: "Total requests",
+              value: formatNumber(pick(aggregate.errorRates, "totalRequests")),
+            },
+            {
+              label: "5xx (recent)",
+              value: formatNumber(pick(recentErrors, "http5xxCount", "totalErrors")),
             },
           ]}
         />
