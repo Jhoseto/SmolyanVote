@@ -40,7 +40,7 @@ public class AdminActivityController {
 
         try {
 
-            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(0);
+            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(limit);
             Map<String, Object> stats = activityLogService.getActivityStatistics();
 
             Map<String, Object> response = new HashMap<>();
@@ -65,7 +65,7 @@ public class AdminActivityController {
             @RequestParam(defaultValue = "0") int limit) {
 
         try {
-            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(0);
+            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(limit);
             Map<String, Object> stats = activityLogService.getActivityStatistics();
 
             Map<String, Object> response = new HashMap<>();
@@ -118,7 +118,7 @@ public class AdminActivityController {
             @RequestParam(defaultValue = "desc") String sortDir) {
 
         try {
-            size = Math.min(Math.max(1, size), 100);
+            size = Math.min(Math.max(1, size), 500);
             page = Math.max(0, page);
 
             Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -158,7 +158,7 @@ public class AdminActivityController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         try {
-            size = Math.min(Math.max(1, size), 100);
+            size = Math.min(Math.max(1, size), 500);
             page = Math.max(0, page);
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
             Page<ActivityLogEntity> activitiesPage = activityLogService.getAdminActivities(pageable);

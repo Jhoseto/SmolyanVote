@@ -149,7 +149,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Transactional(readOnly = true)
     public List<ActivityLogEntity> getRecentActivities(int limit) {
         try {
-            int effectiveLimit = limit <= 0 ? 100 : Math.min(limit, 500);
+            int effectiveLimit = limit <= 0 ? 500 : Math.min(limit, 2000);
             return activityLogRepository
                     .findAll(PageRequest.of(0, effectiveLimit, Sort.by(Sort.Direction.DESC, "timestamp")))
                     .getContent();

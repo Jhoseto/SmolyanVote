@@ -106,7 +106,7 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
                 Map<String, Object> data = (Map<String, Object>) clientMessage.getData();
                 Object limitObj = data.get("limit");
                 if (limitObj instanceof Number) {
-                    limit = Math.min(((Number) limitObj).intValue(), 200); // max 200
+                    limit = Math.min(((Number) limitObj).intValue(), 500); // max 500
                 }
             }
 

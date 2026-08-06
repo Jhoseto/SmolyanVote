@@ -283,7 +283,8 @@ export const adminApi = {
       totalPages: number;
     }>(`/admin/api/activities/admin-actions?page=${page}&size=${size}`),
 
-  activities: () => apiClient.get<ActivitiesResponse>("/admin/api/activities/recent"),
+  activities: (limit = 500) =>
+    apiClient.get<ActivitiesResponse>(`/admin/api/activities/recent?limit=${limit}`),
 
   activitiesSince: (lastId: number) =>
     apiClient.get<ActivitiesResponse>(`/admin/api/activities/since/${lastId}`),
@@ -300,6 +301,8 @@ export const adminApi = {
       size?: number;
       totalElements?: number;
       totalPages?: number;
+      hasNext?: boolean;
+      hasPrevious?: boolean;
       stats?: ActivityStats;
     }>(`/admin/api/activities/filtered?${qs.toString()}`);
   },

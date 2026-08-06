@@ -27,17 +27,23 @@ import {
   normalizeActivityItems,
   type ActivitySocketStatus,
 } from "../lib/activitySocket";
+import {
+  DEFAULT_ACTIVITY_FEED_FILTERS,
+  deriveFilterOptions,
+  filterAndSortActivities,
+  resolveActivityIp,
+  type ActivityFeedFilters,
+} from "../lib/activityFeedFilters";
+import {
+  ACTIVITY_PAGE_SIZE,
+  mergeActivityItems,
+  oldestActivityTimestamp,
+} from "../lib/activityFeedMerge";
 import type { ActivityItem, ActivityStats } from "../types";
+import { ActivityFeedToolbar } from "./ActivityFeedToolbar";
 import { MetricGrid } from "./MetricGrid";
 
 type View = "feed" | "analytics" | "settings" | "audit";
-
-/** Full IP from REST/WS payload (camelCase or snake_case). */
-function resolveActivityIp(item: ActivityItem & { ip_address?: string | null }): string | null {
-  const raw = (item.ipAddress ?? item.ip_address ?? "").trim();
-  if (!raw || raw.toLowerCase() === "unknown") return null;
-  return raw;
-}
 
 function ActivityIpBadge({ ip }: { ip: string | null }) {
   if (!ip) {
@@ -64,14 +70,32 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
   const [socketStatus, setSocketStatus] = useState<ActivitySocketStatus>("idle");
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [stats, setStats] = useState<ActivityStats | null>(null);
-  const [action, setAction] = useState("");
-  const [username, setUsername] = useState("");
-  const [entityType, setEntityType] = useState("");
+  const [feedFilters, setFeedFilters] = useState<ActivityFeedFilters>(DEFAULT_ACTIVITY_FEED_FILTERS);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [totalInDatabase, setTotalInDatabase] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const parentRef = useRef<HTMLDivElement>(null);
 
   const recentQ = useQuery({
-    queryKey: ["admin", "activities", "recent"],
-    queryFn: () => adminApi.activities(),
+    queryKey: ["admin", "activities", "recent", ACTIVITY_PAGE_SIZE],
+    queryFn: async () => {
+      const [feed, statsRes] = await Promise.all([
+        adminApi.activitiesFiltered({
+          page: 0,
+          size: ACTIVITY_PAGE_SIZE,
+          sortBy: "timestamp",
+          sortDir: "desc",
+        }),
+        adminApi.activityStats(),
+      ]);
+      return {
+        activities: feed.activities ?? [],
+        stats: statsRes.stats,
+        totalElements: feed.totalElements ?? feed.activities?.length ?? 0,
+        hasNext: feed.hasNext ?? (feed.activities?.length ?? 0) >= ACTIVITY_PAGE_SIZE,
+      };
+    },
     enabled: enabled && !live && view !== "audit",
     refetchInterval: live ? false : 15_000,
   });
@@ -84,7 +108,12 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     if (!enabled) return;
-    if (recentQ.data?.activities) setItems(normalizeActivityItems(recentQ.data.activities));
+    if (recentQ.data?.activities) {
+      setItems(normalizeActivityItems(recentQ.data.activities));
+      setHistoryPage(0);
+      setHasMoreHistory(recentQ.data.hasNext ?? false);
+      setTotalInDatabase(recentQ.data.totalElements ?? null);
+    }
     if (recentQ.data?.stats) setStats(recentQ.data.stats);
   }, [enabled, recentQ.data]);
 
@@ -97,7 +126,7 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
         if (act.id != null) {
           const normalized = normalizeActivityItems([act])[0];
           setItems((prev) =>
-            (prev.some((p) => p.id === normalized.id) ? prev : [normalized, ...prev]).slice(0, 500),
+            (prev.some((p) => p.id === normalized.id) ? prev : [normalized, ...prev]).slice(0, 2000),
           );
         }
       }
@@ -131,28 +160,53 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
     if (!enabled) return;
     setActivityLiveEnabled(live);
     if (live) {
-      // pull once via REST as seed while socket connects
-      void adminApi.activities().then((res) => {
+      void adminApi.activities(ACTIVITY_PAGE_SIZE).then((res) => {
         setItems(normalizeActivityItems(res.activities ?? []));
         if (res.stats) setStats(res.stats);
+        setHistoryPage(0);
+        setHasMoreHistory((res.activities?.length ?? 0) >= ACTIVITY_PAGE_SIZE);
       });
     }
   }, [live, enabled]);
 
-  const filteredQ = useQuery({
-    queryKey: ["admin", "activities", "filtered", action, username, entityType],
-    queryFn: () =>
-      adminApi.activitiesFiltered({
-        action: action || undefined,
-        username: username || undefined,
-        entityType: entityType || undefined,
-        page: 0,
-        size: 100,
+  async function loadOlderActivities() {
+    if (loadingMore || !hasMoreHistory) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = historyPage + 1;
+      const res = await adminApi.activitiesFiltered({
+        page: nextPage,
+        size: ACTIVITY_PAGE_SIZE,
         sortBy: "timestamp",
         sortDir: "desc",
-      }),
-    enabled: enabled && view === "feed" && (!!action || !!username || !!entityType),
-  });
+      });
+      const incoming = normalizeActivityItems(res.activities ?? []);
+      if (incoming.length === 0) {
+        setHasMoreHistory(false);
+      } else {
+        setItems((prev) => mergeActivityItems(prev, incoming));
+        setHistoryPage(nextPage);
+        setHasMoreHistory(res.hasNext ?? incoming.length >= ACTIVITY_PAGE_SIZE);
+        if (res.totalElements != null) setTotalInDatabase(res.totalElements);
+      }
+    } catch (e) {
+      toast.error(errorMessage(e, "Неуспешно зареждане на по-стари записи"));
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const oldestLoadedLabel = useMemo(() => {
+    const oldest = oldestActivityTimestamp(items);
+    return oldest ? formatRelativeDate(oldest.toISOString()) : null;
+  }, [items]);
+
+  const filterOptions = useMemo(() => deriveFilterOptions(items), [items]);
+
+  const displayItems = useMemo(
+    () => filterAndSortActivities(items, feedFilters),
+    [items, feedFilters],
+  );
 
   const analyticsQ = useQuery({
     queryKey: ["admin", "activities", "analytics"],
@@ -170,11 +224,6 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
     enabled: enabled && view === "analytics",
     staleTime: 60_000,
   });
-
-  const displayItems = useMemo(() => {
-    if (filteredQ.data?.activities?.length) return normalizeActivityItems(filteredQ.data.activities);
-    return items;
-  }, [filteredQ.data, items]);
 
   const virtualizer = useVirtualizer({
     count: displayItems.length,
@@ -265,7 +314,7 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
         {live && socketStatus === "open" && (
           <button
             type="button"
-            onClick={() => sendActivitySocket({ type: "get_recent", data: { limit: 50 } })}
+            onClick={() => sendActivitySocket({ type: "get_recent", data: { limit: 500 } })}
             className="rounded border px-2 py-1 text-xs"
           >
             Refresh WS
@@ -349,62 +398,64 @@ export function ActivityPanel({ enabled }: { enabled: boolean }) {
 
       {view === "feed" && (
         <>
-          <div className="flex flex-wrap gap-2">
-            <input
-              value={action}
-              onChange={(e) => setAction(e.target.value)}
-              placeholder="Действие…"
-              className="rounded border px-2 py-1.5 text-sm"
-            />
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Потребител…"
-              className="rounded border px-2 py-1.5 text-sm"
-            />
-            <input
-              value={entityType}
-              onChange={(e) => setEntityType(e.target.value)}
-              placeholder="Тип обект…"
-              className="rounded border px-2 py-1.5 text-sm"
-            />
-          </div>
+          <ActivityFeedToolbar
+            filters={feedFilters}
+            onChange={setFeedFilters}
+            options={filterOptions}
+            totalCount={items.length}
+            filteredCount={displayItems.length}
+            totalInDatabase={totalInDatabase}
+            oldestLoadedLabel={oldestLoadedLabel}
+            hasMoreHistory={hasMoreHistory}
+            loadingMore={loadingMore}
+            onLoadOlder={() => void loadOlderActivities()}
+          />
 
           <div
             ref={parentRef}
             className="h-[480px] overflow-y-auto rounded-[var(--radius-lg)] border border-border-default/60"
           >
-            <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-              {virtualizer.getVirtualItems().map((row) => {
-                const item = displayItems[row.index];
-                const ip = resolveActivityIp(item);
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      transform: `translateY(${row.start}px)`,
-                    }}
-                    className="flex items-start gap-2 border-b border-border-default/40 px-3 py-2 text-sm"
-                  >
-                    <i className={cn("bi mt-0.5 shrink-0", item.iconClass || "bi-circle")} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="min-w-0 truncate font-medium">{item.displayText || item.action}</p>
-                        <ActivityIpBadge ip={ip} />
+            {displayItems.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-[color:var(--color-text-muted)]">
+                {items.length === 0
+                  ? "Няма заредени активности."
+                  : "Няма резултати за текущите филтри."}
+              </p>
+            ) : (
+              <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+                {virtualizer.getVirtualItems().map((row) => {
+                  const item = displayItems[row.index];
+                  const ip = resolveActivityIp(item);
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        transform: `translateY(${row.start}px)`,
+                      }}
+                      className="flex items-start gap-2 border-b border-border-default/40 px-3 py-2 text-sm"
+                    >
+                      <i className={cn("bi mt-0.5 shrink-0", item.iconClass || "bi-circle")} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="min-w-0 truncate font-medium">{item.displayText || item.action}</p>
+                          <ActivityIpBadge ip={ip} />
+                        </div>
+                        <p className="text-[11px] text-[color:var(--color-text-muted)]">
+                          {item.username ?? "—"}
+                          {item.timestamp ? ` · ${formatRelativeDate(item.timestamp)}` : ""}
+                          {item.entityType ? ` · ${item.entityType}` : ""}
+                          {item.entityId != null ? ` #${item.entityId}` : ""}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-[color:var(--color-text-muted)]">
-                        {item.username ?? "—"}
-                        {item.timestamp ? ` · ${formatRelativeDate(item.timestamp)}` : ""}
-                      </p>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </>
       )}
